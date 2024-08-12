@@ -1,0 +1,99 @@
+# This file is used to ignore files which are generated
+# ----------------------------------------------------------------------------
+
+*~
+*.autosave
+*.a
+*.core
+*.moc
+*.o
+*.obj
+*.orig
+*.rej
+*.so
+*.so.*
+*_pch.h.cpp
+*_resource.rc
+*.qm
+.#*
+*.*#
+core
+!core/
+tags
+.DS_Store
+.directory
+*.debug
+Makefile*
+*.prl
+*.app
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+Thumbs.db
+*.res
+*.rc
+/.qmake.cache
+/.qmake.stash
+
+# qtcreator generated files
+*.pro.user*
+
+# xemacs temporary files
+*.flc
+
+# Vim temporary files
+.*.swp
+
+# Visual Studio generated files
+*.ib_pdb_index
+*.idb
+*.ilk
+*.pdb
+*.sln
+*.suo
+*.vcproj
+*vcproj.*.*.user
+*.ncb
+*.sdf
+*.opensdf
+*.vcxproj
+*vcxproj.*
+
+# MinGW generated files
+*.Debug
+*.Release
+
+# Python byte code
+*.pyc
+
+# Binaries
+# --------
+*.exe
+
+*.json
+*.sjson
+*.l3p
+*.Release
+/build
+/build
+*.Release
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/Makefile.Release
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/Makefile.Debug
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/debug/moc_mainwindow.o
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/debug/mainwindow.o
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/debug/main.o
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/debug/IMD-FingerPrints.exe
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/debug/fap30reader.o
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/debug/devicediscover.o
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/compile_commands.json
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/type_traits.EF1DD7E3AB38D0D3.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/qtypeinfo.h.F3210FCF68759217.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/qtmetamacros.h.0665FB5E331A6DB8.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/qtclasshelpermacros.h.ED338A77DFF3CAE7.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/qstringlist.h.A82386732FC637FB.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/QSerialPort.B672AE6566F7574A.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/qobject.h.3D4343F96E6704BC.idx
+build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug/.qtc_clangd/.cache/clangd/index/qiodevice.h.39BBDA0A83D9A459.idx
+*.Debug
+/build
+/build/Desktop_Qt_6_7_0_MinGW_64_bit-Debug
