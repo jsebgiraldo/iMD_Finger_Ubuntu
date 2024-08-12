@@ -8,13 +8,24 @@ CONFIG += c++17
 # In order to do so, uncomment the following line.
 #DEFINES += QT_DISABLE_DEPRECATED_BEFORE=0x060000    # disables all the APIs deprecated before Qt 6.0.0
 
+DEFINES += QT_DEPRECATED_WARNINGS
+
+QMAKE_LFLAGS += -Wl,-rpath=/usr/lib:./
+
 SOURCES += \
+    IMD/FAP20/fap20reader.cpp \
+    IMD/FAP20/fingerprint.cpp \
     IMD/common/databasemanager.cpp \
     IMD/common/devicediscover.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
+    IMD/FAP20/fap20reader.h \
+    IMD/FAP20/fingerprint.h \
+    IMD/FAP20/libs/fpcore.h \
+    IMD/FAP20/libs/fpdevice.h \
+    IMD/FAP20/libs/fpstate.h \
     IMD/common/databasemanager.h \
     IMD/common/devicediscover.h \
     IMD/common/fingersList.h \
@@ -25,6 +36,11 @@ HEADERS += \
 
 FORMS += \
     mainwindow.ui
+
+
+LIBS += -L$$PWD/libs/ -lfpdevice -lfpcore -lfpcore20 -lfpcore30 -lfpstate -lrt -ludev
+LIBS += -ldl
+
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin

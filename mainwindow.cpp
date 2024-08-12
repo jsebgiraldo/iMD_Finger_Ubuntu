@@ -1,8 +1,11 @@
 #include "mainwindow.h"
+#include "IMD/FAP20/fap20reader.h"
 #include "ui_mainwindow.h"
 #include "qgraphicseffect.h"
-
+#include <QtWidgets/QGraphicsView>
 #include <QMessageBox>
+
+MainWindow *pMainWindow=0;
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -11,11 +14,111 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     ui_initial_setup();
 
+    pMainWindow=this;
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+}
+
+
+void MainWindow::FPMessage(int worktype,int retval,unsigned char* data,int size)
+{
+    switch(worktype)
+    {
+    case FPM_PLACEFINGER:
+        status_bar_text("Place Finger ...");
+        break;
+    case FPM_LIFTFINGER:
+        status_bar_text("Lift Finger ...");
+        break;
+    case FPM_DRAWIMAGE:
+        status_bar_text("Draw Finger Image");
+        DrawBitmap(data);
+        break;
+    case FPM_CAPTUREIMAGE:
+        if(retval)
+            status_bar_text("Capture Image OK");
+        else
+            status_bar_text("Capture Image Fail");
+        break;
+    case FPM_ENROLTP:
+        if(retval)
+        {
+            m_EnrolSize=size;
+            memcpy(m_EnrolData,data,size);
+            status_bar_text("Enrol Template OK");
+        }
+        else
+            status_bar_text("Enrol Template Fail");
+        break;
+    case FPM_CAPTURETP:
+        if(retval)
+        {
+            m_CaptureSize=size;
+            memcpy(m_CaptureData,data,size);
+            status_bar_text("Capture Template OK");
+            if(m_EnrolSize>0)
+            {
+                //int sc=MatchTemplate(m_EnrolData,m_EnrolSize,m_CaptureData,m_CaptureSize);
+                //int sc=FAP20_MatchTemplate(m_EnrolData,m_EnrolSize,m_CaptureData,m_CaptureSize);
+                int sc=FAP30_MatchTemplate(m_EnrolData,m_EnrolSize,m_CaptureData,m_CaptureSize);
+                if(sc>50)
+                    status_bar_text("Match OK,Scores:"+QString::number(sc));
+                else
+                    status_bar_text("Match Fail,Scores:"+QString::number(sc));
+            }
+        }
+        else
+            status_bar_text("Capture Template Fail");
+        break;
+
+    }
+}
+
+void MainWindow::DrawBitmap(unsigned char* imagedata)
+{
+    ImageToBitmap(imagedata,m_ImageWidth,m_ImageHeight,m_BmpData,0);
+    m_BmpSize=m_ImageWidth*m_ImageHeight+1078;
+    QPixmap * pm = new QPixmap();
+    pm->loadFromData(m_BmpData,m_BmpSize,"bmp");
+    QGraphicsScene * gs = new QGraphicsScene();
+    gs->addPixmap(*pm);
+    ui->preview_capture->setScene(gs);
+}
+
+
+void  MainWindow::HotPlugCallBackStub(uint8_t action,uint8_t iSerialNumber,uint16_t idVendor,uint16_t idProduct)
+{
+    qDebug() << action << iSerialNumber << idVendor << idProduct;
+
+    if(pMainWindow)
+        pMainWindow->HotPlugCallBack(action,iSerialNumber,idVendor,idProduct);
+}
+
+void  MainWindow::HotPlugCallBack(uint8_t action,uint8_t iSerialNumber,uint16_t idVendor,uint16_t idProduct)
+{
+
+    qDebug() << action << iSerialNumber << idVendor << idProduct;
+    char status[128];
+    switch(action)
+    {
+    case 0:
+        status_bar_text("Start Hotplug Thread\n");
+        break;
+    case 1:
+        sprintf(status,"Add USB device: VID(0x%x) PID(0x%x) SerialNumber(0x%x)\n", idVendor, idProduct,iSerialNumber);
+        status_bar_text(status);
+        break;
+    case 2:
+        sprintf(status,"Remove USB device: VID(0x%x) PID(0x%x) SerialNumber(0x%x)\n", idVendor, idProduct,iSerialNumber);
+        status_bar_text(status);
+        break;
+    case 3:
+        status_bar_text("Exit Hotplug Thread\n");
+        break;
+    }
 }
 
 // ---------------------------------
@@ -25,6 +128,7 @@ void MainWindow::ui_initial_setup()
     ui->pushButton_3->setIcon(QIcon(":/img/icon.png")); // IMD Logo
 
     ui_customhand_setup();
+    on_CaptureLiveModeButton_clicked();
 
     ui->tabWidget_2->setCurrentIndex(0);
     ui->stackedWidget->setCurrentIndex(0);
@@ -150,12 +254,24 @@ void MainWindow::on_ConnectButton_clicked()
 
 #define FAP20
 #ifdef FAP20
-    deviceConnected_action();
-    ui->device_combo_box->setCurrentIndex(1);
-    enableFAP20layout();
-    //fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text());
-    fap_controller = E_FAP20;
-    return;
+
+    if(OpenDevice(0,0,0) && LinkDevice(0))
+    {
+        deviceConnected_action();
+        ui->device_combo_box->setCurrentIndex(1);
+        enableFAP20layout();
+        //fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text());
+        if(ReadDeviceInfo(&m_DevInfo))
+        {
+            qDebug() << "Fingerprint Capacity: "+QString::number(m_DevInfo.iFPMax)+"\n"+
+                                    "Security Level: "+QString::number(m_DevInfo.iSecLevel)+"\n"+
+                                    "SerialPort Baud: "+QString::number(m_DevInfo.iBaud*9600)+"\n"+
+                                    "SerialPort Package: "+QString::number(32*(1 << m_DevInfo.iPackSize))+"\n"+
+                                    "...";
+        }
+        fap_controller = E_FAP20;
+        return;
+    }
 #elif FAP50
     deviceConnected_action();
     ui->device_combo_box->setCurrentIndex(2);
@@ -388,7 +504,7 @@ void MainWindow::on_AuthenticationTab_clicked()
 void MainWindow::ClearCaptureTab()
 {
     ui->capture_sampling_label->clear();
-    ui->preview_capture->clear();
+    //ui->preview_capture->
     ui->capture_score_label->setText("0");
     ui->score_label->setText("0");
 
@@ -443,6 +559,123 @@ void MainWindow::ClearVerifyTab()
 }
 
 //------------------------------<<
+
+
+// SECTION "Auto" and "Live" pushbutton callbacks -----------------------------------------------------------------------------------------
+void MainWindow::clearBackgroundColor(QPushButton* button) {
+    static const QRegularExpression regex("background-color:\\s*rgb\\((\\d{1,3}),\\s*(\\d{1,3}),\\s*(\\d{1,3})\\);?");
+    QString styleSheet = button->styleSheet();
+    button->setStyleSheet(styleSheet.remove(regex));
+}
+
+
+void MainWindow::on_CaptureLiveModeButton_clicked()
+{
+    //ui->save_button->setEnabled(true);
+    //ui->enroll_pushButton->setEnabled(true);
+    //ui->verify_button->setEnabled(true);
+
+    currentMode = E_MODE_TYPE::E_MODE_LIVE;
+    //Enroll
+    clearBackgroundColor(ui->CaptureLiveModeButton);
+    clearBackgroundColor(ui->AutoCaptureModeButton);
+    ui->CaptureLiveModeButton->setStyleSheet(ui->CaptureLiveModeButton->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->AutoCaptureModeButton->setStyleSheet(ui->AutoCaptureModeButton->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+    // Capture Tab
+    clearBackgroundColor(ui->CaptureLiveModeButton_2);
+    clearBackgroundColor(ui->AutoCaptureModeButton_2);
+    ui->CaptureLiveModeButton_2->setStyleSheet(ui->CaptureLiveModeButton_2->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->AutoCaptureModeButton_2->setStyleSheet(ui->AutoCaptureModeButton_2->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+
+
+    // Authentication Tab
+    clearBackgroundColor(ui->CaptureLiveModeButton_3);
+    clearBackgroundColor(ui->AutoCaptureModeButton_3);
+    ui->CaptureLiveModeButton_3->setStyleSheet(ui->CaptureLiveModeButton_3->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->AutoCaptureModeButton_3->setStyleSheet(ui->AutoCaptureModeButton_3->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+
+
+
+    // Verification Tab
+    clearBackgroundColor(ui->CaptureLiveModeButton_4);
+    clearBackgroundColor(ui->AutoCaptureModeButton_4);
+    ui->CaptureLiveModeButton_4->setStyleSheet(ui->CaptureLiveModeButton_4->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->AutoCaptureModeButton_4->setStyleSheet(ui->AutoCaptureModeButton_4->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+    ui->capture_score_groupbox->setHidden(true);
+    ui->enroll_score_groupbox->setHidden(true);
+    ui->identification_group_box->setHidden(true);
+    ui->auth_score_groupbox->setHidden(true);
+}
+
+void MainWindow::on_AutoCaptureModeButton_clicked()
+{
+    //ui->save_button->setEnabled(false);
+    //ui->enroll_pushButton->setEnabled(false);
+    //ui->verify_button->setEnabled(false);
+
+    currentMode = E_MODE_TYPE::E_MODE_AUTO;
+    clearBackgroundColor(ui->CaptureLiveModeButton);
+    clearBackgroundColor(ui->AutoCaptureModeButton);
+    ui->AutoCaptureModeButton->setStyleSheet(ui->AutoCaptureModeButton->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->CaptureLiveModeButton->setStyleSheet(ui->CaptureLiveModeButton->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+    clearBackgroundColor(ui->CaptureLiveModeButton_2);
+    clearBackgroundColor(ui->AutoCaptureModeButton_2);
+    ui->AutoCaptureModeButton_2->setStyleSheet(ui->AutoCaptureModeButton_2->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->CaptureLiveModeButton_2->setStyleSheet(ui->CaptureLiveModeButton_2->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+    clearBackgroundColor(ui->CaptureLiveModeButton_3);
+    clearBackgroundColor(ui->AutoCaptureModeButton_3);
+    ui->AutoCaptureModeButton_3->setStyleSheet(ui->AutoCaptureModeButton_3->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->CaptureLiveModeButton_3->setStyleSheet(ui->CaptureLiveModeButton_3->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+    clearBackgroundColor(ui->CaptureLiveModeButton_4);
+    clearBackgroundColor(ui->AutoCaptureModeButton_4);
+    ui->AutoCaptureModeButton_4->setStyleSheet(ui->AutoCaptureModeButton_4->styleSheet() + "background-color: rgb(255, 255, 255);color: #616E85;");
+    ui->CaptureLiveModeButton_4->setStyleSheet(ui->CaptureLiveModeButton_4->styleSheet() + "background-color: #EFF2F5;color: #616E85;");
+
+    ui->capture_score_groupbox->setHidden(false);
+    ui->enroll_score_groupbox->setHidden(false);
+    ui->identification_group_box->setHidden(false);
+    ui->auth_score_groupbox->setHidden(false);
+}
+
+void MainWindow::on_CaptureLiveModeButton_2_clicked()
+{
+    on_CaptureLiveModeButton_clicked();
+}
+
+void MainWindow::on_AutoCaptureModeButton_2_clicked()
+{
+    on_AutoCaptureModeButton_clicked();
+}
+
+void MainWindow::on_CaptureLiveModeButton_3_clicked()
+{
+    on_CaptureLiveModeButton_clicked();
+}
+
+void MainWindow::on_AutoCaptureModeButton_3_clicked()
+{
+    on_AutoCaptureModeButton_clicked();
+}
+
+void MainWindow::on_CaptureLiveModeButton_4_clicked()
+{
+    on_CaptureLiveModeButton_clicked();
+}
+
+void MainWindow::on_AutoCaptureModeButton_4_clicked()
+{
+    on_AutoCaptureModeButton_clicked();
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------------->> END SECTION "Auto" and "Live" pushbutton callbacks
+
 
 void MainWindow::status_bar_text(QString text, int timeout)
 {

@@ -3,8 +3,13 @@
 
 #include <QMainWindow>
 
+#include "./libs/fpcore.h"
+#include "./libs/fpdevice.h"
+#include "./libs/fpstate.h"
+
 #include "IMD/common/databasemanager.h"
 #include "IMD/common/modes.h"
+#include "qpushbutton.h"
 
 enum E_SAMPLING_TYPE {
     E_SAMPLING_TYPE_ERROR,
@@ -23,14 +28,16 @@ enum E_FAP_TYPE{
 };
 
 QT_BEGIN_NAMESPACE
-namespace Ui {
-class MainWindow;
-}
+namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
+private slots:
+    static void  HotPlugCallBackStub(uint8_t action,uint8_t iSerialNumber,uint16_t idVendor,uint16_t idProduct);
+    void  HotPlugCallBack(uint8_t action,uint8_t iSerialNumber,uint16_t idVendor,uint16_t idProduct);
 
 private slots:
     void on_ConnectButton_clicked();
@@ -48,6 +55,15 @@ private slots:
 
     void on_tabWidget_currentChanged(E_TAB_TYPE index);
 
+    void on_CaptureLiveModeButton_clicked();
+    void on_AutoCaptureModeButton_clicked();
+    void on_CaptureLiveModeButton_2_clicked();
+    void on_AutoCaptureModeButton_2_clicked();
+    void on_CaptureLiveModeButton_3_clicked();
+    void on_AutoCaptureModeButton_3_clicked();
+    void on_CaptureLiveModeButton_4_clicked();
+    void on_AutoCaptureModeButton_4_clicked();
+
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
@@ -56,7 +72,9 @@ public:
     void enableFAP20layout();
     void enableFAP50layout();
 
-
+public: //fap20
+    void DrawBitmap(unsigned char* imagedata);
+    void FPMessage(int worktype,int retval,unsigned char* data,int size);
 
 private:
     void ui_initial_setup();
@@ -70,7 +88,9 @@ private:
     void ClearAuthTab();
     void ClearVerifyTab();
 
-    void status_bar_text(QString text, int timeout);
+    void clearBackgroundColor(QPushButton* button);
+
+    void status_bar_text(QString text, int timeout=1000);
     int template_popup(E_POPUP_TYPE mode, QString title, QString body,E_POPUP_BUTTON_TYPE btn_type = E_POPUP_BUTTON_TYPE_OK);
 
 private:
@@ -82,9 +102,23 @@ private:
     E_MODE_TYPE currentMode = E_MODE_TYPE::E_MODE_LIVE;
     E_TAB_TYPE currentTab = E_TAB_TYPE::E_TAB_TYPE_CAPTURE;
 
+private: //fap20
+    bool m_isOpen;
+    int m_ImageWidth;
+    int m_ImageHeight;
+
+    int m_EnrolSize;
+    int m_CaptureSize;
+    int m_ImageSize;
+    int m_BmpSize;
+
+    unsigned char m_EnrolData[1024];
+    unsigned char m_CaptureData[1024];
+    unsigned char m_ImageData[300000];
+    unsigned char m_BmpData[300000];
 private:
     Ui::MainWindow *ui;
-
+    FPDEVINFO m_DevInfo;
     databasemanager *dbManager = nullptr;
 };
 #endif // MAINWINDOW_H
