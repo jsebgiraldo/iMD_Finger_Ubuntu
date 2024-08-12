@@ -147,7 +147,7 @@ opacity: 1;</string>
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap>:/img/@3x/ic_volume@3x.png</pixmap>
+                <pixmap resource="img.qrc">:/img/@3x/ic_volume@3x.png</pixmap>
                </property>
                <property name="alignment">
                 <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -231,7 +231,7 @@ QComboBox QAbstractItemView::item:selected{
                 <string/>
                </property>
                <property name="pixmap">
-                <pixmap>:/img/@3x/ic_speech@3x.png</pixmap>
+                <pixmap resource="img.qrc">:/img/@3x/ic_speech@3x.png</pixmap>
                </property>
                <property name="alignment">
                 <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
@@ -621,7 +621,7 @@ border:0px solid;
                          <string/>
                         </property>
                         <property name="icon">
-                         <iconset>
+                         <iconset resource="img.qrc">
                           <normaloff>:/img/@3x/ic_database@3x.png</normaloff>:/img/@3x/ic_database@3x.png</iconset>
                         </property>
                         <property name="iconSize">
@@ -1363,7 +1363,7 @@ background-color: #D6D9DC
                                       <string>Choose Fingers</string>
                                      </property>
                                      <property name="icon">
-                                      <iconset>
+                                      <iconset resource="img.qrc">
                                        <normaloff>:/img/@3x/ic_hand_normal@3x.png</normaloff>:/img/@3x/ic_hand_normal@3x.png</iconset>
                                      </property>
                                     </widget>
@@ -1949,7 +1949,7 @@ padding: 0px 40px 0px 43px;</string>
                                          <string/>
                                         </property>
                                         <property name="icon">
-                                         <iconset>
+                                         <iconset resource="img.qrc">
                                           <normaloff>:/img/arrow/icons8-arrow-24.png</normaloff>:/img/arrow/icons8-arrow-24.png</iconset>
                                         </property>
                                         <property name="iconSize">
@@ -2824,7 +2824,7 @@ QRadioButton::indicator:disabled
                                    <string/>
                                   </property>
                                   <property name="pixmap">
-                                   <pixmap>:/img/@3x/bg_hand@3x.png</pixmap>
+                                   <pixmap resource="img.qrc">:/img/@3x/bg_hand@3x.png</pixmap>
                                   </property>
                                  </widget>
                                 </item>
@@ -3052,7 +3052,7 @@ background-color: #D6D9DC
                                       <string>Choose Fingers</string>
                                      </property>
                                      <property name="icon">
-                                      <iconset>
+                                      <iconset resource="img.qrc">
                                        <normaloff>:/img/@3x/ic_hand_normal@3x.png</normaloff>:/img/@3x/ic_hand_normal@3x.png</iconset>
                                      </property>
                                     </widget>
@@ -3705,7 +3705,7 @@ padding: 0px 40px 0px 43px;</string>
                                          <string/>
                                         </property>
                                         <property name="icon">
-                                         <iconset>
+                                         <iconset resource="img.qrc">
                                           <normaloff>:/img/arrow/icons8-arrow-24.png</normaloff>:/img/arrow/icons8-arrow-24.png</iconset>
                                         </property>
                                         <property name="iconSize">
@@ -4539,7 +4539,7 @@ height: 33px;</string>
                                    <string/>
                                   </property>
                                   <property name="icon">
-                                   <iconset>
+                                   <iconset resource="img.qrc">
                                     <normaloff>:/img/@1x/ic_hand_right.png</normaloff>:/img/@1x/ic_hand_right.png</iconset>
                                   </property>
                                   <property name="iconSize">
@@ -4568,7 +4568,7 @@ height: 33px;</string>
                                    <string/>
                                   </property>
                                   <property name="icon">
-                                   <iconset>
+                                   <iconset resource="img.qrc">
                                     <normaloff>:/img/@1x/ic_thumb.png</normaloff>:/img/@1x/ic_thumb.png</iconset>
                                   </property>
                                   <property name="iconSize">
@@ -4597,7 +4597,7 @@ height: 33px;</string>
                                    <string/>
                                   </property>
                                   <property name="icon">
-                                   <iconset>
+                                   <iconset resource="img.qrc">
                                     <normaloff>:/img/@3x/ic_hand_left@3x.png</normaloff>:/img/@3x/ic_hand_left@3x.png</iconset>
                                   </property>
                                   <property name="iconSize">
@@ -4626,7 +4626,7 @@ height: 33px;</string>
                                    <string/>
                                   </property>
                                   <property name="icon">
-                                   <iconset>
+                                   <iconset resource="img.qrc">
                                     <normaloff>:/img/@1x/ic_finger.png</normaloff>:/img/@1x/ic_finger.png</iconset>
                                   </property>
                                   <property name="iconSize">
@@ -5010,7 +5010,7 @@ QRadioButton::indicator:disabled
                                    <string/>
                                   </property>
                                   <property name="pixmap">
-                                   <pixmap>:/img/@3x/bg_hand@3x.png</pixmap>
+                                   <pixmap resource="img.qrc">:/img/@3x/bg_hand@3x.png</pixmap>
                                   </property>
                                  </widget>
                                 </item>
@@ -5552,7 +5552,7 @@ padding: 0px 40px 0px 43px;</string>
                                       <string/>
                                      </property>
                                      <property name="icon">
-                                      <iconset>
+                                      <iconset resource="img.qrc">
                                        <normaloff>:/img/arrow/icons8-arrow-24.png</normaloff>:/img/arrow/icons8-arrow-24.png</iconset>
                                      </property>
                                      <property name="iconSize">
@@ -6500,7 +6500,7 @@ background-color: #D6D9DC
                                          <string>Choose Fingers</string>
                                         </property>
                                         <property name="icon">
-                                         <iconset>
+                                         <iconset resource="img.qrc">
                                           <normaloff>:/img/@3x/ic_hand_normal@3x.png</normaloff>:/img/@3x/ic_hand_normal@3x.png</iconset>
                                         </property>
                                        </widget>
@@ -6959,7 +6959,7 @@ padding: 0px 40px 0px 43px;</string>
                                       <string/>
                                      </property>
                                      <property name="icon">
-                                      <iconset>
+                                      <iconset resource="img.qrc">
                                        <normaloff>:/img/arrow/icons8-arrow-24.png</normaloff>:/img/arrow/icons8-arrow-24.png</iconset>
                                      </property>
                                      <property name="iconSize">
@@ -7827,7 +7827,7 @@ QRadioButton::indicator:disabled
                                    <string/>
                                   </property>
                                   <property name="pixmap">
-                                   <pixmap>:/img/@3x/bg_hand@3x.png</pixmap>
+                                   <pixmap resource="img.qrc">:/img/@3x/bg_hand@3x.png</pixmap>
                                   </property>
                                   <property name="scaledContents">
                                    <bool>false</bool>
@@ -12035,6 +12035,8 @@ background-color: #3D526D
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="img.qrc"/>
+ </resources>
  <connections/>
 </ui>

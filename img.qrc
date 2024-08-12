@@ -1,0 +1,110 @@
+<RCC>
+    <qresource prefix="/">
+        <file>img/4x/Asset 2@4x.png</file>
+        <file>img/4x/Asset 2@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 3@4x.png</file>
+        <file>img/4x/Asset 3@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 4@4x.png</file>
+        <file>img/4x/Asset 4@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 5@4x.png</file>
+        <file>img/4x/Asset 5@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 6@4x.png</file>
+        <file>img/4x/Asset 6@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 7@4x.png</file>
+        <file>img/4x/Asset 7@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 8@4x.png</file>
+        <file>img/4x/Asset 8@4x.png:Zone.Identifier</file>
+        <file>img/4x/Asset 9@4x.png</file>
+        <file>img/4x/Asset 9@4x.png:Zone.Identifier</file>
+        <file>img/@1x/bg_hand.png</file>
+        <file>img/@1x/bg_hand.png:Zone.Identifier</file>
+        <file>img/@1x/ic_database.png</file>
+        <file>img/@1x/ic_database.png:Zone.Identifier</file>
+        <file>img/@1x/ic_finger.png</file>
+        <file>img/@1x/ic_finger.png:Zone.Identifier</file>
+        <file>img/@1x/ic_hand_left.png</file>
+        <file>img/@1x/ic_hand_left.png:Zone.Identifier</file>
+        <file>img/@1x/ic_hand_normal.png</file>
+        <file>img/@1x/ic_hand_normal.png:Zone.Identifier</file>
+        <file>img/@1x/ic_hand_right.png</file>
+        <file>img/@1x/ic_hand_right.png:Zone.Identifier</file>
+        <file>img/@1x/ic_hand_select.png</file>
+        <file>img/@1x/ic_hand_select.png:Zone.Identifier</file>
+        <file>img/@1x/ic_speech.png</file>
+        <file>img/@1x/ic_speech.png:Zone.Identifier</file>
+        <file>img/@1x/ic_thumb.png</file>
+        <file>img/@1x/ic_thumb.png:Zone.Identifier</file>
+        <file>img/@1x/ic_verified.png</file>
+        <file>img/@1x/ic_verified.png:Zone.Identifier</file>
+        <file>img/@1x/ic_volume.png</file>
+        <file>img/@1x/ic_volume.png:Zone.Identifier</file>
+        <file>img/@2x/bg_hand@2x.png</file>
+        <file>img/@2x/bg_hand@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_database@2x.png</file>
+        <file>img/@2x/ic_database@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_finger@2x.png</file>
+        <file>img/@2x/ic_finger@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_hand_left@2x.png</file>
+        <file>img/@2x/ic_hand_left@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_hand_normal@2x.png</file>
+        <file>img/@2x/ic_hand_normal@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_hand_right@2x.png</file>
+        <file>img/@2x/ic_hand_right@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_hand_select@2x.png</file>
+        <file>img/@2x/ic_hand_select@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_speech@2x.png</file>
+        <file>img/@2x/ic_speech@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_thumb@2x.png</file>
+        <file>img/@2x/ic_thumb@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_verified@2x.png</file>
+        <file>img/@2x/ic_verified@2x.png:Zone.Identifier</file>
+        <file>img/@2x/ic_volume@2x.png</file>
+        <file>img/@2x/ic_volume@2x.png:Zone.Identifier</file>
+        <file>img/@3x/bg_hand@3x.png</file>
+        <file>img/@3x/bg_hand@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_database@3x.png</file>
+        <file>img/@3x/ic_database@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_finger@3x.png</file>
+        <file>img/@3x/ic_finger@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_hand_left@3x.png</file>
+        <file>img/@3x/ic_hand_left@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_hand_normal@3x.png</file>
+        <file>img/@3x/ic_hand_normal@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_hand_right@3x.png</file>
+        <file>img/@3x/ic_hand_right@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_hand_select@3x.png</file>
+        <file>img/@3x/ic_hand_select@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_speech@3x.png</file>
+        <file>img/@3x/ic_speech@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_thumb@3x.png</file>
+        <file>img/@3x/ic_thumb@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_verified@3x.png</file>
+        <file>img/@3x/ic_verified@3x.png:Zone.Identifier</file>
+        <file>img/@3x/ic_volume@3x.png</file>
+        <file>img/@3x/ic_volume@3x.png:Zone.Identifier</file>
+        <file>img/@4x/bg_hand@4x.png</file>
+        <file>img/arrow/icons8-arrow-24.png</file>
+        <file>img/arrow/icons8-arrows-24.png</file>
+        <file>img/messagebox/icons8-info-64.png</file>
+        <file>img/messagebox/icons8-info-64.png:Zone.Identifier</file>
+        <file>img/messagebox/icons8-success-80.png</file>
+        <file>img/messagebox/icons8-success-80.png:Zone.Identifier</file>
+        <file>img/messagebox/icons8-warning-96.png</file>
+        <file>img/messagebox/icons8-warning-96.png:Zone.Identifier</file>
+        <file>img/tittle_bar/icons8-close-50.png</file>
+        <file>img/tittle_bar/icons8-close-50.png:Zone.Identifier</file>
+        <file>img/tittle_bar/icons8-maximize-50.png</file>
+        <file>img/tittle_bar/icons8-maximize-50.png:Zone.Identifier</file>
+        <file>img/tittle_bar/icons8-minimize-50.png</file>
+        <file>img/tittle_bar/icons8-minimize-50.png:Zone.Identifier</file>
+        <file>img/fingerprint.ico</file>
+        <file>img/icon.png</file>
+        <file>img/icon.png:Zone.Identifier</file>
+        <file>img/icons8-add-50.png</file>
+        <file>img/icons8-add-50.png:Zone.Identifier</file>
+        <file>img/icons8-language-100.png</file>
+        <file>img/icons8-language-50.png</file>
+        <file>img/icons8-subtract-50.png</file>
+        <file>img/icons8-subtract-50.png:Zone.Identifier</file>
+    </qresource>
+</RCC>

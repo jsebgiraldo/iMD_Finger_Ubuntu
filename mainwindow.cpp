@@ -7,6 +7,8 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
+    ui->pushButton_3->setIcon(QIcon(":/img/icon.png"));
+
     ui->custom_hand_widget->setBackgroudLabel(ui->label_70);
 
     ui->capture_hand_widget->setBackgroudLabel(ui->capture_hand_label);
