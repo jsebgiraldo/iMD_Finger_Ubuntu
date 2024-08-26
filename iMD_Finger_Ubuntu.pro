@@ -13,7 +13,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 QMAKE_LFLAGS += -Wl,-rpath=/usr/lib:./
 
 SOURCES += \
+    IMD/FAP20/fap20controller.cpp \
     IMD/FAP20/fap20reader.cpp \
+    IMD/FAP20/fap20thread.cpp \
     IMD/FAP20/fingerprint.cpp \
     IMD/common/databasemanager.cpp \
     IMD/common/devicediscover.cpp \
@@ -21,11 +23,10 @@ SOURCES += \
     mainwindow.cpp
 
 HEADERS += \
+    IMD/FAP20/fap20controller.h \
     IMD/FAP20/fap20reader.h \
+    IMD/FAP20/fap20thread.h \
     IMD/FAP20/fingerprint.h \
-    IMD/FAP20/libs/fpcore.h \
-    IMD/FAP20/libs/fpdevice.h \
-    IMD/FAP20/libs/fpstate.h \
     IMD/common/databasemanager.h \
     IMD/common/devicediscover.h \
     IMD/common/fingersList.h \
@@ -38,7 +39,7 @@ FORMS += \
     mainwindow.ui
 
 
-LIBS += -L$$PWD/libs/ -lfpdevice -lfpcore -lfpcore20 -lfpcore30 -lfpstate -lrt -ludev
+LIBS += -L$$PWD/libs/ -lfpdevice  -lfpcore -lfpnbis -lfpcore20 -lfpcore30  -lfpstate -lrt -ludev
 LIBS += -ldl
 
 

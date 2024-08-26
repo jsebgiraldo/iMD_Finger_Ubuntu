@@ -2,11 +2,16 @@
 #define FINGERPRINT_H
 
 
+#include "IMD/common/fingersList.h"
 #include <cstddef>
 #include <QPixmap>
 class Fingerprint
 {
 public:
+    Fingerprint();
+    QMap<QString, E_FINGER_POSITION> finger_position_enum_map;
+    QMap<E_FINGER_POSITION, QString> finger_position_string_map;
+    QMap<E_FINGER_POSITION, QString> finger_path_map;
 
     enum ImageQuality
     {

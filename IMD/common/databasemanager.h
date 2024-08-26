@@ -9,9 +9,27 @@
 #include <QFile>
 #include <QIODevice>
 #include "IMD/common/fingersList.h"
+#include "libs/fpdevice.h"
 
 
 #define TEMPLATE_SIZE  1024
+#define SCORE_ARRAY_SIZE 4
+
+struct ImageProperty {
+    E_FINGER_POSITION pos;
+    BOOL this_scan;
+
+    BYTE img;
+    long width, height;
+    int score_array[SCORE_ARRAY_SIZE];
+    int score_size;
+};
+
+typedef struct {
+    ImageProperty img;
+    BYTE templateBytes[TEMPLATE_SIZE];
+    int templateSize;
+} t_enroll_struct;
 
 class databasemanager
 {
