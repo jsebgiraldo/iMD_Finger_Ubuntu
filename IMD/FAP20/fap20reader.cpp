@@ -11,6 +11,9 @@ Fap20Reader::Fap20Reader(QObject *parent) : QObject(parent)
 {
     Discover = new DeviceDiscover();
     Controller = new Fap20Controller();
+    Finger = new Fingerprint();
+
+    m_stop = false;
 
     connect(this,SIGNAL(FPMessage(int,int,unsigned char *,int)),this,SLOT(slotFPMessage(int,int,unsigned char *,int)));
 }
@@ -28,11 +31,27 @@ void Fap20Reader::slotFPMessage(int worktype,int retval,unsigned char* data,int 
         break;
     case FPM_DRAWIMAGE:
         emit fap20readerSignal_send_message_to_mainwindow("Draw Finger Image");
-        //DrawBitmap(data);
+        GetImageCapture(data);
         break;
     case FPM_CAPTUREIMAGE:
         if(retval)
+        {
             emit fap20readerSignal_send_message_to_mainwindow("Capture Image OK");
+
+            if(Finger->Score > threshold){
+                    emit fap20readerSignal_placeSamplingLabel("N/A", "N/A", "N/A", 0);
+            }else
+            {
+                if(IsConnected)
+                {
+                    Fap20Thread * fpwork=new Fap20Thread(this,WORK_CAPTUREIMAGE);
+                    fpwork->start();
+                }
+
+            }
+
+            Stop();
+        }
         else
             emit fap20readerSignal_send_message_to_mainwindow("Capture Image Fail");
         break;
@@ -70,15 +89,32 @@ void Fap20Reader::slotFPMessage(int worktype,int retval,unsigned char* data,int 
     }
 }
 
+void Fap20Reader::GetImageCapture(unsigned char* imagedata)
+{
+    qDebug() << "GetImageCapture";
+
+    ImageToBitmap(imagedata,m_ImageWidth,m_ImageHeight,m_BmpData,0);
+    m_BmpSize=m_ImageWidth*m_ImageHeight+1078;
+    Finger->pixmap.loadFromData(m_BmpData,m_BmpSize,"bmp");
+
+    //char *ptr = Nfiq2->ConvertToIntPtr(Finger->rawImage);
+    //int score = Nfiq2->SafeComputeNfiq2Score(1, (char *)Finger->rawImage, 400*500, Finger->imgwidth, Finger->imgheight, 500);
+    //Nfiq2->FreeIntPtr(ptr);
+
+    int score = 100;
+
+    Finger->Score = score > 100 ? 0 : score;
+
+    emit fap20readerSignal_sig_ImageReady();
+
+    //Controller->SafeDeviceLedState(0x37, 0x00);
+}
+
 bool Fap20Reader::fap20clearDatabase(){
     bool result = dbManager->clearDatabase();
     return result;
 }
 
-void Fap20Reader::GetImageCapture()
-{
-
-}
 
 void Fap20Reader::GetImageTemplate()
 {
@@ -170,7 +206,7 @@ void Fap20Reader::StartCapture(bool _keepRunning, int _threshold, E_FINGER_POSIT
 
     if(IsConnected)
     {
-        Fap20Thread * fpwork=new Fap20Thread(this,WORK_CAPTURETP);
+        Fap20Thread * fpwork=new Fap20Thread(this,WORK_CAPTUREIMAGE);
         fpwork->start();
     }
 

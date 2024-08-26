@@ -89,7 +89,7 @@ public:
     void set_current_finger(E_FINGER_POSITION finger);
     void set_match_threshold(int _threshold);
 
-    void GetImageCapture();
+    void GetImageCapture(unsigned char* data);
     void GetImageTemplate();
     bool fap20clearDatabase();
     void handleOverwriteDecision(bool overwrite);
