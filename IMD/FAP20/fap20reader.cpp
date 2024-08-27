@@ -60,6 +60,11 @@ void Fap20Reader::slotFPMessage(int worktype,int retval,unsigned char* data,int 
         {
             m_EnrolSize=size;
             memcpy(m_EnrolData,data,size);
+
+            //if(score < threshold)
+
+            SearchInDB();
+
             emit fap20readerSignal_send_message_to_mainwindow("Enrol Template OK");
         }
         else
@@ -71,16 +76,8 @@ void Fap20Reader::slotFPMessage(int worktype,int retval,unsigned char* data,int 
             m_CaptureSize=size;
             memcpy(m_CaptureData,data,size);
             emit fap20readerSignal_send_message_to_mainwindow("Capture Template OK");
-            if(m_EnrolSize>0)
-            {
-                //int sc=MatchTemplate(m_EnrolData,m_EnrolSize,m_CaptureData,m_CaptureSize);
-                //int sc=FAP20_MatchTemplate(m_EnrolData,m_EnrolSize,m_CaptureData,m_CaptureSize);
-                int sc=FAP30_MatchTemplate(m_EnrolData,m_EnrolSize,m_CaptureData,m_CaptureSize);
-                if(sc>50)
-                    emit fap20readerSignal_send_message_to_mainwindow("Match OK,Scores:"+QString::number(sc));
-                else
-                    emit fap20readerSignal_send_message_to_mainwindow("Match Fail,Scores:"+QString::number(sc));
-            }
+            AuthenticateFingerprint();
+
         }
         else
             emit fap20readerSignal_send_message_to_mainwindow("Capture Template Fail");
@@ -110,21 +107,6 @@ void Fap20Reader::GetImageCapture(unsigned char* imagedata)
     //Controller->SafeDeviceLedState(0x37, 0x00);
 }
 
-bool Fap20Reader::fap20clearDatabase(){
-    bool result = dbManager->clearDatabase();
-    return result;
-}
-
-
-void Fap20Reader::GetImageTemplate()
-{
-
-}
-
-bool Fap20Reader::Detect(){
-    return true;
-}
-
 bool Fap20Reader::Connect(){
 
     if(IsConnected)
@@ -150,23 +132,6 @@ bool Fap20Reader::Connect(){
 
 bool Fap20Reader::Disconnect(){
     return Controller->SafeCloseDevice();
-}
-
-bool Fap20Reader::receiveDatabasePath(QString dbpath) {
-    DBPath = dbpath;
-    if (dbManager) {
-        delete dbManager;
-        dbManager = nullptr;
-    }
-
-    dbManager = new databasemanager(DBPath);
-    if (!dbManager->isDatabaseOpen()) {
-        delete dbManager;
-        dbManager = nullptr;
-        emit fap20readerSignal_send_message_to_mainwindow("Failed to open or create database");
-        return false;
-    }
-    return true;
 }
 
 void Fap20Reader::receiveThreshold(int value){
@@ -196,13 +161,12 @@ void Fap20Reader::receiveForceCapture(bool _forceCapture){
     forceCapture = _forceCapture;
 }
 
-void Fap20Reader::StartCapture(bool _keepRunning, int _threshold, E_FINGER_POSITION finger, E_MODE_TYPE mode, QString dbpath){
+void Fap20Reader::StartCapture(bool _keepRunning, int _threshold, E_FINGER_POSITION finger, E_MODE_TYPE mode){
     CaptureMode = E_TAB_TYPE::E_TAB_TYPE_CAPTURE;
     current_finger = finger;
     enrollMode = mode;
     keepRunning = _keepRunning;
     threshold = _threshold;
-    DBPath = dbpath;
 
     if(IsConnected)
     {
@@ -229,14 +193,25 @@ void Fap20Reader::StartEnroll(int _threshold, E_FINGER_POSITION finger, E_MODE_T
         qDebug() << "threshold: " << threshold;
         qDebug() << "current_finger: " << GetFingerString(current_finger);
     }
-    Controller->SafeEnrollTemplate();
+
+    if(IsConnected)
+    {
+        Fap20Thread * fpwork=new Fap20Thread(this,WORK_ENROLTP);
+        fpwork->start();
+    }
+
 }
 
 void Fap20Reader::StartAuth(E_MODE_TYPE mode){
     CaptureMode = E_TAB_TYPE::E_TAB_TYPE_AUTH;
     keepRunning = true;
     enrollMode = mode;
-    Controller->SafeEnrollTemplate();
+
+    if(IsConnected)
+    {
+        Fap20Thread * fpwork=new Fap20Thread(this,WORK_CAPTURETP);
+        fpwork->start();
+    }
 }
 
 void Fap20Reader::StartVerification(E_MODE_TYPE mode, QString id, E_FINGER_POSITION finger){
@@ -267,17 +242,21 @@ void Fap20Reader::SearchInDB(){
     int fingerprintCount;
 
     QString msgToLabel;
-    if (dbManager->userExists(userID)) {
-        QMap<E_FINGER_POSITION, QByteArray> fingerprints = dbManager->getFingerprintsByPositionAndUserID(userID);
+    int retval = Finger->dbManager->userExists(userID);
+
+    qDebug() << "userExists result:" << retval;
+
+    if (retval) {
+        QMap<E_FINGER_POSITION, QByteArray> fingerprints = Finger->dbManager->getFingerprintsByPositionAndUserID(userID);
 
         if (fingerprints.contains(current_finger)) {
             QByteArray storedTemplate = fingerprints.value(current_finger);
-            std::vector<std::byte> storedTemplateBytes(storedTemplate.size());
+            std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
             int match_score = Controller->SafeMatchTemplate(
-                reinterpret_cast<std::byte*>(capturedTemplate.data()),
-                storedTemplateBytes.data());
+                m_EnrolData,m_EnrolSize,
+                storedTemplateBytes.data(),storedTemplateBytes.size());
 
             if (match_score >= threshold) {
 
@@ -287,37 +266,32 @@ void Fap20Reader::SearchInDB(){
                 pendingFingerPosition = current_finger;
                 msgToLabel = "Fingerprint already exists for this user";
                 enrollStatus = E_OLD_USER_REPEATED_FINGERPRINT;
-                fingerprintCount = dbManager->getFingerprintCountForUser(userID);
+                fingerprintCount = Finger->dbManager->getFingerprintCountForUser(userID);
                 emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
                 emit fap20readerSignal_placeSamplingLabel("", "", GetFingerString(current_finger), fingerprintCount);
                 return;
             }
         }
-        fingerprintCount = dbManager->getFingerprintCountForUser(userID);
+        fingerprintCount = Finger->dbManager->getFingerprintCountForUser(userID);
         msgToLabel = "New fingeprint for registered user";
         enrollStatus = E_OLD_USER_NEW_FINGERPRINT_OK;
         emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
         emit fap20readerSignal_placeSamplingLabel("", "", GetFingerString(current_finger), fingerprintCount);
     } else {
         // User ID is not registered. Comparing current_finger with all the current_finger in the database
-        QList<QPair<QString, QByteArray>> fingerprints = dbManager->getFingerprintsByPosition(current_finger);
+        QList<QPair<QString, QByteArray>> fingerprints = Finger->dbManager->getFingerprintsByPosition(current_finger);
         for (const auto& fingerprint : fingerprints) {
             QString userId = fingerprint.first;
             QByteArray storedTemplate = fingerprint.second;
-            std::vector<std::byte> storedTemplateBytes(storedTemplate.size());
-            std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            int match_score = Controller->SafeMatchTemplate(
-                reinterpret_cast<std::byte*>(capturedTemplate.data()),
-                storedTemplateBytes.data());
+            m_CaptureSize = storedTemplate.size();
+            memcpy(m_CaptureData,storedTemplate.data(),storedTemplate.size());
 
+            int match_score = Controller->SafeMatchTemplate(m_CaptureData,m_CaptureSize,m_EnrolData,m_EnrolSize);
             if (match_score >= threshold) {
-
-
                 emit fap20readerSignal_send_message_to_mainwindow(QString::number(match_score));
-
                 pendingUserID = userId;
-                fingerprintCount = dbManager->getFingerprintCountForUser(pendingUserID);
+                fingerprintCount = Finger->dbManager->getFingerprintCountForUser(pendingUserID);
                 msgToLabel = "Fingerprint already exists for different id: " + pendingUserID;
                 enrollStatus = E_NEW_USER_CONFLICT_WITH_ANOTHER_USER;
                 emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
@@ -325,7 +299,7 @@ void Fap20Reader::SearchInDB(){
                 return;
             }
         }
-        fingerprintCount = dbManager->getFingerprintCountForUser(userID);
+        fingerprintCount = Finger->dbManager->getFingerprintCountForUser(userID);
         msgToLabel = "New fingerprint for new user";
         enrollStatus = E_NEW_USER_NEW_FINGERPRINT_OK;
         emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
@@ -342,75 +316,80 @@ void Fap20Reader::EnrollFingerprint(){
     int fingerprintCount;
 
     QString msgToLabel;
-    if (dbManager->userExists(userID)) {
-        QMap<E_FINGER_POSITION, QByteArray> fingerprints = dbManager->getFingerprintsByPositionAndUserID(userID);
+
+    QByteArray capturedTemplate(reinterpret_cast<const char*>(m_EnrolData), m_EnrolSize);
+
+
+    int retval = Finger->dbManager->userExists(userID);
+    qDebug() << "userExists" << retval;
+
+    if (retval) {
+        QMap<E_FINGER_POSITION, QByteArray> fingerprints = Finger->dbManager->getFingerprintsByPositionAndUserID(userID);
 
         if (fingerprints.contains(current_finger)) {
             QByteArray storedTemplate = fingerprints.value(current_finger);
-            std::vector<std::byte> storedTemplateBytes(storedTemplate.size());
+            std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            if (Controller->SafeMatchTemplate(
-                    reinterpret_cast<std::byte*>(capturedTemplate.data()),
-                    storedTemplateBytes.data()) >= threshold) {
+            int match_score = Controller->SafeMatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_EnrolData,m_EnrolSize);
+            if (match_score >= threshold) {
 
                 pendingFingerPosition = current_finger;
                 msgToLabel = "Fingerprint already exists for this user";
                 enrollStatus = E_OLD_USER_REPEATED_FINGERPRINT;
-                fingerprintCount = dbManager->getFingerprintCountForUser(userID);
+                fingerprintCount = Finger->dbManager->getFingerprintCountForUser(userID);
                 emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
                 emit fap20readerSignal_placeSamplingLabel("", "", GetFingerString(current_finger), fingerprintCount);
 
                 msgToBox = "Current fingerprint already exists for this user.\
                             \nWould you like to overwrite the existing fingerprint?";
-                emit fap20readerSignal_send_enrollReport_to_mainwindow(enrollStatus, msgToBox, dbManager->getUserNameByID(userID), userID);
+                emit fap20readerSignal_send_enrollReport_to_mainwindow(enrollStatus, msgToBox, Finger->dbManager->getUserNameByID(userID), userID);
                 return;
             }
         }
 
-        if (!dbManager->addFingerprint_to_registeredUser(userID, current_finger, capturedTemplate)) {
+        if (!Finger->dbManager->addFingerprint_to_registeredUser(userID, current_finger,capturedTemplate)) {
             qDebug() << "Failed to store fingerprint for current user";
             emit fap20readerSignal_send_message_to_mainwindow("Failed to store fingerprint for current user");
-            emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", dbManager->getUserNameByID(userID), userID);
+            emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", Finger->dbManager->getUserNameByID(userID), userID);
         }
 
-        fingerprintCount = dbManager->getFingerprintCountForUser(userID);
+        fingerprintCount = Finger->dbManager->getFingerprintCountForUser(userID);
         msgToLabel = "New fingeprint for registered user";
         enrollStatus = E_OLD_USER_NEW_FINGERPRINT_OK;
         emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
         emit fap20readerSignal_placeSamplingLabel("", "", GetFingerString(current_finger), fingerprintCount);
-        emit fap20readerSignal_send_enrollReport_to_mainwindow(enrollStatus, msgToBox, dbManager->getUserNameByID(userID), userID);
+        emit fap20readerSignal_send_enrollReport_to_mainwindow(enrollStatus, msgToBox, Finger->dbManager->getUserNameByID(userID), userID);
     } else {
         // User ID is not registered. Comparing current_finger with all the current_finger in the database
-        QList<QPair<QString, QByteArray>> fingerprints = dbManager->getFingerprintsByPosition(current_finger);
+        QList<QPair<QString, QByteArray>> fingerprints = Finger->dbManager->getFingerprintsByPosition(current_finger);
         for (const auto& fingerprint : fingerprints) {
             QString userId = fingerprint.first;
             QByteArray storedTemplate = fingerprint.second;
-            std::vector<std::byte> storedTemplateBytes(storedTemplate.size());
+            std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            if (Controller->SafeMatchTemplate(
-                    reinterpret_cast<std::byte*>(capturedTemplate.data()),
-                    storedTemplateBytes.data()) >= threshold) {
+            int match_score = Controller->SafeMatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_EnrolData,m_EnrolSize);
+            if (match_score >= threshold) {
                 pendingUserID = userId;
-                fingerprintCount = dbManager->getFingerprintCountForUser(pendingUserID);
+                fingerprintCount = Finger->dbManager->getFingerprintCountForUser(pendingUserID);
                 msgToLabel = "Fingerprint already exists for different id: " + pendingUserID;
                 enrollStatus = E_NEW_USER_CONFLICT_WITH_ANOTHER_USER;
                 emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
                 emit fap20readerSignal_placeSamplingLabel("", "", GetFingerString(current_finger), fingerprintCount);
 
-                msgToBox = "Fingerprint " + GetFingerString(current_finger) + " is already enrolled for a different user with id: " + pendingUserID + " and name: " + dbManager->getUserNameByID(pendingUserID);
-                emit fap20readerSignal_send_enrollReport_to_mainwindow(enrollStatus, msgToBox, dbManager->getUserNameByID(pendingUserID), pendingUserID);
+                msgToBox = "Fingerprint " + GetFingerString(current_finger) + " is already enrolled for a different user with id: " + pendingUserID + " and name: " + Finger->dbManager->getUserNameByID(pendingUserID);
+                emit fap20readerSignal_send_enrollReport_to_mainwindow(enrollStatus, msgToBox, Finger->dbManager->getUserNameByID(pendingUserID), pendingUserID);
                 return;
             }
         }
-        if (!dbManager->addNewUserWithFingerprint(userID, userName, current_finger, capturedTemplate)) {
+        if (!Finger->dbManager->addNewUserWithFingerprint(userID, userName, current_finger, capturedTemplate)) {
             msgToLabel = "Failed to create new user and store fingerprint";
             emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
             emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", userName, userID);
         }
 
-        fingerprintCount = dbManager->getFingerprintCountForUser(userID);
+        fingerprintCount = Finger->dbManager->getFingerprintCountForUser(userID);
         msgToLabel = "New fingerprint for new user";
         enrollStatus = E_NEW_USER_NEW_FINGERPRINT_OK;
         emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
@@ -422,16 +401,19 @@ void Fap20Reader::EnrollFingerprint(){
 void Fap20Reader::handleOverwriteDecision(bool overwrite) {
     if (overwrite) {
         QString msgToBox;
-        if (!dbManager->deleteFingerprint(pendingUserID, pendingFingerPosition)) {
+        if (!Finger->dbManager->deleteFingerprint(pendingUserID, pendingFingerPosition)) {
             emit fap20readerSignal_send_message_to_mainwindow("Failed to overwrite fingerprint for current user");
-            emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", dbManager->getUserNameByID(userID), userID);
+            emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", Finger->dbManager->getUserNameByID(userID), userID);
             return;
         }
 
-        if (!dbManager->addFingerprint_to_registeredUser(pendingUserID, pendingFingerPosition, capturedTemplate)) {
+        QByteArray capturedTemplate(reinterpret_cast<const char*>(m_EnrolData), m_EnrolSize);
+
+
+        if (!Finger->dbManager->addFingerprint_to_registeredUser(pendingUserID, pendingFingerPosition,capturedTemplate)) {
             qDebug() << "Failed to store fingerprint for current user";
             emit fap20readerSignal_send_message_to_mainwindow("Failed to store fingerprint for current user");
-            emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", dbManager->getUserNameByID(userID), userID);
+            emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_DATABASE_ERROR, "Database error", Finger->dbManager->getUserNameByID(userID), userID);
             return;
         }
 
@@ -439,7 +421,7 @@ void Fap20Reader::handleOverwriteDecision(bool overwrite) {
         QString msgToLabel = "Fingerprint overwritten successfully";
         emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
 
-        emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_OVERWRITE_SUCESS, msgToBox, dbManager->getUserNameByID(userID), userID);
+        emit fap20readerSignal_send_enrollReport_to_mainwindow(E_MODE_ENROLLSTATUS::E_OVERWRITE_SUCESS, msgToBox, Finger->dbManager->getUserNameByID(userID), userID);
     }
     QApplication::processEvents();
 }
@@ -475,18 +457,6 @@ QString Fap20Reader::GetFingerString(E_FINGER_POSITION fingerPos){
 
 void Fap20Reader::AuthenticateFingerprint() {
     keepRunning = false;
-    Stop();
-    std::vector<std::byte> capturedBuf(TEMPLATE_SIZE);
-    int capturedSize = 0;
-
-    // Capturar la huella digital
-    if (!Controller->SafeGetTemplateByEnl(capturedBuf.data(), &capturedSize)) {
-        qDebug() << "Failed to capture fingerprint template";
-        emit fap20readerSignal_send_message_to_mainwindow("Failed to capture fingerprint template");
-        return;
-    }
-    Stop();
-    QByteArray capturedTemplate = QByteArray(reinterpret_cast<char*>(capturedBuf.data()), capturedSize);
 
     // Lista de posiciones de los dedos que sí son manejadas
     QList<E_FINGER_POSITION> validFingerPositions = {
@@ -507,24 +477,24 @@ void Fap20Reader::AuthenticateFingerprint() {
 
     // Iterar a través de todas las posiciones válidas de los dedos
     for (E_FINGER_POSITION fingerPosition : validFingerPositions) {
-        QList<QPair<QString, QByteArray>> fingerprints = dbManager->getFingerprintsByPosition(fingerPosition);
+        QList<QPair<QString, QByteArray>> fingerprints = Finger->dbManager->getFingerprintsByPosition(fingerPosition);
 
         for (const auto& fingerprint : fingerprints) {
             QString userId = fingerprint.first;
             QByteArray storedTemplate = fingerprint.second;
-            std::vector<std::byte> storedTemplateBytes(storedTemplate.size());
+            std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
-            int matchScore = Controller->SafeMatchTemplate(
-                reinterpret_cast<std::byte*>(capturedTemplate.data()),
-                storedTemplateBytes.data());
-            if (matchScore >= matchThreshold) {
-                QString userName = dbManager->getUserNameByID(userId);
-                msgToLabel = QString::number(matchScore);
+
+            int match_score = Controller->SafeMatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_CaptureData,m_CaptureSize);
+
+            if (match_score >= matchThreshold) {
+                QString userName = Finger->dbManager->getUserNameByID(userId);
+                msgToLabel = QString::number(match_score);
                 emit fap20readerSignal_send_message_to_mainwindow(msgToLabel);
                 emit fap20readerSignal_placeSamplingLabel(userName, userId, GetFingerString(fingerPosition), 0);
                 msgToBox = "Fingerprint is recognized for user with id: " + userId + " and name: " + userName;
                 msgToBox = msgToBox + "\nReading again.";
-                emit fap20readerSignal_send_authReport_to_mainwindow(userName, userId, E_POPUP_BUTTON_TYPE::E_POPUP_BUTTON_TYPE_OK, E_POPUP_TYPE::E_POPUP_TYPE_SUCCESS,matchScore);
+                emit fap20readerSignal_send_authReport_to_mainwindow(userName, userId, E_POPUP_BUTTON_TYPE::E_POPUP_BUTTON_TYPE_OK, E_POPUP_TYPE::E_POPUP_TYPE_SUCCESS,match_score);
                 return;
             }
         }
@@ -551,19 +521,20 @@ void Fap20Reader::VerifyIDFingerprint(const QString id, E_FINGER_POSITION finger
 
     QByteArray capturedTemplate = QByteArray(reinterpret_cast<char*>(capturedBuf.data()), capturedSize);
 
-    QMap<E_FINGER_POSITION, QByteArray> fingerprintsMap = dbManager->getFingerprintsByPositionAndUserID(id);
+    QMap<E_FINGER_POSITION, QByteArray> fingerprintsMap = Finger->dbManager->getFingerprintsByPositionAndUserID(id);
 
     if (fingerprintsMap.contains(finger)) {
         QByteArray storedTemplate = fingerprintsMap.value(finger);
-        std::vector<std::byte> storedTemplateBytes(storedTemplate.size());
+        std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
         std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
         int match_score = Controller->SafeMatchTemplate(
-            reinterpret_cast<std::byte*>(capturedTemplate.data()),
-            storedTemplateBytes.data());
+            m_EnrolData,m_EnrolSize,
+            storedTemplateBytes.data(),storedTemplateBytes.size());
+
 
         if (match_score >= matchThreshold) {
-            QString userName = dbManager->getUserNameByID(id);
+            QString userName = Finger->dbManager->getUserNameByID(id);
             //QString msgToBox = "Fingerprint for user ID: " + id + " and name: " + userName + " at position " + GetFingerString(finger) + " verified successfully.";
             QString msgToLabel = "Fingerprint verified";
             emit fap20readerSignal_placeSamplingLabel(userName, id, GetFingerString(current_finger), 0);

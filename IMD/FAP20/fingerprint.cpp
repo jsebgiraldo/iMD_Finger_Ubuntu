@@ -1,4 +1,5 @@
 #include "fingerprint.h"
+#include "libs/fpcore.h"
 
 Fingerprint::Fingerprint()
 {
@@ -49,4 +50,3 @@ Fingerprint::Fingerprint()
     finger_path_map[FINGER_POSITION_LEFT_RING] = "left_ring";
     finger_path_map[FINGER_POSITION_LEFT_LITTLE] = "left_little";
 }
-

@@ -50,9 +50,11 @@ public:
     int getFingerprintCountForUser(const QString &userID);
     int getDatabaseRecords();
 
+public:
+    QString DBPath;
+
 private:
     QSqlDatabase db;
-
     bool createTables();
 };
 

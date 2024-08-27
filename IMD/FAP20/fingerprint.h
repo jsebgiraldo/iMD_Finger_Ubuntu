@@ -2,6 +2,7 @@
 #define FINGERPRINT_H
 
 
+#include "IMD/common/databasemanager.h"
 #include "IMD/common/fingersList.h"
 #include <cstddef>
 #include <QPixmap>
@@ -131,5 +132,6 @@ public: enum Fingers : ushort
     QPixmap pixmap;
     std::byte * rawBytes;
 
+    databasemanager *dbManager = nullptr;
 };
 #endif // FINGERPRINT_H

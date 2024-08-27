@@ -48,10 +48,10 @@ public:
     E_FINGER_POSITION current_finger;
     Fingerprint * Finger = nullptr;
     QList<UserTemplate> RefList;
+
     QString userID;
     QString userName;
-    QString DBPath;
-    databasemanager *dbManager = nullptr;
+
     E_MODE_TYPE enrollMode;
     E_MODE_ENROLLSTATUS enrollStatus;
     bool startLiveVerification = false;
@@ -65,19 +65,15 @@ public:
 
     Fap20Reader(QObject *parent = nullptr);
 
-    bool Detect();
     bool Connect();
     bool Disconnect();
 
-
-
-    void StartCapture(bool _keepRunning, int _threshold, E_FINGER_POSITION finger, E_MODE_TYPE mode, QString dbpath);
+    void StartCapture(bool _keepRunning, int _threshold, E_FINGER_POSITION finger, E_MODE_TYPE mode);
     void StartEnroll(int _threshold, E_FINGER_POSITION finger, E_MODE_TYPE mode, QString username, QString userid);
     void StartAuth(E_MODE_TYPE mode);
     void StartVerification(E_MODE_TYPE mode, QString id, E_FINGER_POSITION finger);
     void Stop();
 
-    bool receiveDatabasePath(QString dbpath);
     void receiveThreshold(int value);
     void receiveForceCapture(bool _forceCapture);
 
@@ -90,8 +86,7 @@ public:
     void set_match_threshold(int _threshold);
 
     void GetImageCapture(unsigned char* data);
-    void GetImageTemplate();
-    bool fap20clearDatabase();
+
     void handleOverwriteDecision(bool overwrite);
     std::byte* GenerateTemplate(Fingerprint fingerprint);
     bool IsConnected = false;
@@ -108,7 +103,6 @@ private:
     Fap20Controller *Controller = nullptr;
     QByteArray fingerprintTemplate;
 
-    QByteArray capturedTemplate;
     QString pendingUserID;
     E_FINGER_POSITION pendingFingerPosition;
 

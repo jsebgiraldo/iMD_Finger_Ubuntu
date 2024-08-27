@@ -1,4 +1,5 @@
 #include "fap20controller.h"
+#include "libs/fpcore.h"
 #include "libs/fpdevice.h"
 
 #include <mutex>
@@ -74,9 +75,9 @@ bool Fap20Controller::SafeGetTemplateByEnl(std::byte * fpbuf, int * fpsize){
     return 1;
 }
 
-int Fap20Controller::SafeMatchTemplate(std::byte * pSrcData, std::byte * pDstData){
+int Fap20Controller::SafeMatchTemplate(unsigned char* pSrcData, int nSrcSize, unsigned char* pDstData, int nDstSize){
     std::lock_guard<std::mutex> lock(_syncLock);
-    return 1;
+    return FAP30_MatchTemplate(pSrcData,  nSrcSize,   pDstData,  nDstSize);
 }
 
 int Fap20Controller::SafeMatchTemplates(std::byte * pSrcData, std::byte * pDstFullData,int nDstCount,int nDstSize,int nThreshold){

@@ -38,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
 
     on_CaptureLiveModeButton_clicked();
 
+    ui->pushButton_3->setIcon(QIcon(":/img/icon.png"));
 
     ui->tabWidget_2->setCurrentIndex(0);
     ui->stackedWidget->setCurrentIndex(0);
@@ -69,8 +70,13 @@ MainWindow::MainWindow(QWidget *parent)
     // Authentication Tab
 
     QString dbPath = QCoreApplication::applicationDirPath() + "/db";
+    QDir dir(dbPath);
+    if (!dir.exists()) {
+        if (!dir.mkpath(dbPath)) {
+            qDebug() << "No se pudo crear la carpeta 'db'.";
+        }
+    }
     ui->databasePath_lineEdit->setText(dbPath);
-
 
     pt_fingerprint = new class Fingerprint();
 
@@ -311,7 +317,7 @@ bool MainWindow::fap20StartCaptureProcess(){
         }
     }
 
-    fap20reader->StartCapture(true, ui->scoreThreshold_capture_spinBox->value(),get_choose_capture_finger() , currentMode, ui->databasePath_lineEdit->text());
+    fap20reader->StartCapture(true, ui->scoreThreshold_capture_spinBox->value(),get_choose_capture_finger() , currentMode);
 
 
 
@@ -648,10 +654,8 @@ void MainWindow::on_DisconnectButton_clicked()
 void MainWindow::on_ConnectButton_clicked()
 {
 
+    fap20_present = true;
 
-    if (fap20reader->Detect()){
-        fap20_present = true;
-    }
 
     if(fap20_present && fap50_present){
         fap_controller = E_NONE;
@@ -666,10 +670,10 @@ void MainWindow::on_ConnectButton_clicked()
 
     if(fap20_present && fap20reader->Connect())
     {
+        if(!OpenDataBase())template_popup(E_POPUP_TYPE_WARNING,"Error","Failed to open or create database.");
         deviceConnected_action();
         ui->device_combo_box->setCurrentIndex(1);
         enableFAP20layout();
-        //fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text());
         fap_controller = E_FAP20;
         return;
     }
@@ -853,15 +857,11 @@ void MainWindow::StopButtonWidgets(){
 void MainWindow::on_device_combo_box_activated(int index)
 {
     if(index == 1){
-        if (fap20reader->Detect()){
-            fap20_present = true;
-        }
         if(fap20_present && fap20reader->Connect())
         {
             deviceConnected_action();
             ui->device_combo_box->setCurrentIndex(1);
             enableFAP20layout();
-            fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text());
             fap_controller = E_FAP20;
             return;
         }
@@ -1243,10 +1243,6 @@ void MainWindow::on_enroll_pushButton_clicked()
             return;
         }
     }
-    if(!fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text())){
-        template_popup(E_POPUP_TYPE_WARNING,"Error","Database could not be created.");
-        return;
-    }
     ui->name_enroll_lineedit->setEnabled(false);
     ui->id_enroll_lineedit->setEnabled(false);
     fap20reader->EnrollFingerprintLive(ui->scoreThreshold_enroll_spinBox->value(), get_choose_enroll_finger(), ui->name_enroll_lineedit->text(), ui->id_enroll_lineedit->text());
@@ -1268,11 +1264,6 @@ void MainWindow::on_verify_button_clicked()
     }
 
     if(fap_controller == E_FAP20){
-
-        if(!fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text())){
-            template_popup(E_POPUP_TYPE_WARNING,"Error", "Database could not be created.");
-            return;
-        }
         fap20reader->VerifyIDFingerprint(ui->id_verification_label->text(), get_choose_verification_finger());
     }else if(fap_controller == E_FAP50){
 
@@ -1309,29 +1300,21 @@ void MainWindow::on_cleardb_enroll_button_clicked()
         }
     }
 
-    if(fap_controller == E_FAP20){
-        if(!fap20reader->receiveDatabasePath(ui->databasePath_lineEdit->text())){
-            template_popup(E_POPUP_TYPE_WARNING,"Error", "Database could not be processed.");
-            return;
+
+    int result = template_popup(E_POPUP_TYPE_INFO,"Info","Database is about to be cleaned. Are you sure?",E_POPUP_BUTTON_TYPE_YES_NO);
+
+    if (result == true) {
+        QMessageBox box;
+        if(dbManager->clearDatabase()){
+            template_popup(E_POPUP_TYPE_SUCCESS,"Success","Database cleaned successfully.");
+            ui->records_enroll_label->setText("0");
+        }else{
+            template_popup(E_POPUP_TYPE_WARNING,"Error","Database could not be cleaned.");
         }
-
-        int result = template_popup(E_POPUP_TYPE_INFO,"Info","Database is about to be cleaned. Are you sure?",E_POPUP_BUTTON_TYPE_YES_NO);
-
-        if (result == true) {
-            QMessageBox box;
-            if(fap20reader->fap20clearDatabase()){
-                template_popup(E_POPUP_TYPE_SUCCESS,"Success","Database cleaned successfully.");
-                ui->records_enroll_label->setText("0");
-            }else{
-                template_popup(E_POPUP_TYPE_WARNING,"Error","Database could not be cleaned.");
-            }
-        } else if (result == false) {
-            return;
-        }
-
-    }else if(fap_controller == E_FAP50){
-
+    } else if (result == false) {
+        return;
     }
+
 }
 
 //----------------------------------------------------------------------------------------------------------------------->> END SECTION Clear buttons on the right-hand side tabwidget

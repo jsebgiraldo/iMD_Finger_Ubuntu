@@ -49,7 +49,7 @@ public:
 
     int SafeCreateTemplate(std::byte * pImage, int width, int height, std::byte * tp, int * templateSize);
     bool SafeGetTemplateByEnl(std::byte * fpbuf, int * fpsize);
-    int SafeMatchTemplate(std::byte * pSrcData, std::byte * pDstData);
+    int SafeMatchTemplate(unsigned char* pSrcData, int nSrcSize, unsigned char* pDstData, int nDstSize);
     int SafeMatchTemplates(std::byte * pSrcData, std::byte * pDstFullData,int nDstCount,int nDstSize,int nThreshold);
     bool SafeDeviceLedState(int type, int status);
 };
