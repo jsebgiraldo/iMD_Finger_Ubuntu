@@ -7,10 +7,8 @@
 #include <QLabel>
 #include <QVBoxLayout>
 
-Fap20Reader::Fap20Reader(QObject *parent) : QObject(parent)
+Fap20Reader::Fap20Reader()
 {
-    Discover = new DeviceDiscover();
-    Controller = new Fap20Controller();
     Finger = new Fingerprint();
 
     m_stop = false;
@@ -18,6 +16,7 @@ Fap20Reader::Fap20Reader(QObject *parent) : QObject(parent)
     connect(this,SIGNAL(FPMessage(int,int,unsigned char *,int)),this,SLOT(slotFPMessage(int,int,unsigned char *,int)));
 }
 
+Fap20Reader::~Fap20Reader(){}
 
 void Fap20Reader::slotFPMessage(int worktype,int retval,unsigned char* data,int size)
 {
@@ -76,8 +75,8 @@ void Fap20Reader::slotFPMessage(int worktype,int retval,unsigned char* data,int 
             m_CaptureSize=size;
             memcpy(m_CaptureData,data,size);
             emit fap20readerSignal_send_message_to_mainwindow("Capture Template OK");
-            AuthenticateFingerprint();
-
+            if(CaptureMode == E_TAB_TYPE_AUTH) AuthenticateFingerprint();
+            else if(CaptureMode == E_TAB_TYPE_VERIFICATION)emit fap20readerSignal_placeSamplingLabel("", "", GetFingerString(current_finger), 0);
         }
         else
             emit fap20readerSignal_send_message_to_mainwindow("Capture Template Fail");
@@ -108,30 +107,26 @@ void Fap20Reader::GetImageCapture(unsigned char* imagedata)
 }
 
 bool Fap20Reader::Connect(){
-
     if(IsConnected)
     {
         return true;
     }
-
-    Controller->SafeCloseDevice();
-
-    if (Controller->SafeOpenDevice() == 1 && Controller->SafeLinkDevice(0) == 1)
+    IsConnected = true;
+    GetImageSize(&m_ImageWidth,&m_ImageHeight);
+    if(ReadDeviceInfo(&m_DevInfo))
     {
-        IsConnected = true;
-        Controller->SafeGetImageSize(&m_ImageWidth,&m_ImageHeight);
+        qDebug() << ("Fingerprint Capacity: "+QString::number(m_DevInfo.iFPMax)+"\n"+
+                                "Security Level: "+QString::number(m_DevInfo.iSecLevel)+"\n"+
+                                "SerialPort Baud: "+QString::number(m_DevInfo.iBaud*9600)+"\n"+
+                                "SerialPort Package: "+QString::number(32*(1 << m_DevInfo.iPackSize))+"\n"+
+                                "...");
     }
-    else
-    {
-        Controller->SafeCloseDevice();
-        IsConnected = false;
-    }
-
     return IsConnected;
 }
 
 bool Fap20Reader::Disconnect(){
-    return Controller->SafeCloseDevice();
+    IsConnected = false;
+    return CloseDevice();
 }
 
 void Fap20Reader::receiveThreshold(int value){
@@ -143,7 +138,6 @@ void Fap20Reader::Stop()
     forceCapture = false;
     startLiveVerification = false;
     keepRunning = false;
-    Controller->SafeResetDevice();
     return;
 }
 
@@ -220,7 +214,12 @@ void Fap20Reader::StartVerification(E_MODE_TYPE mode, QString id, E_FINGER_POSIT
     enrollMode = mode;
     userID = id;
     current_finger = finger;
-    Controller->SafeEnrollTemplate();
+
+    if(IsConnected)
+    {
+        Fap20Thread * fpwork=new Fap20Thread(this,WORK_CAPTURETP);
+        fpwork->start();
+    }
 }
 
 void Fap20Reader::EnrollFingerprintLive(int score, E_FINGER_POSITION finger, QString name, QString id) {
@@ -254,15 +253,10 @@ void Fap20Reader::SearchInDB(){
             std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            int match_score = Controller->SafeMatchTemplate(
-                m_EnrolData,m_EnrolSize,
-                storedTemplateBytes.data(),storedTemplateBytes.size());
-
+            int match_score = FAP30_MatchTemplate(storedTemplateBytes.data(),storedTemplateBytes.size(),m_EnrolData,m_EnrolSize);
             if (match_score >= threshold) {
 
-
                 emit fap20readerSignal_send_message_to_mainwindow(QString::number(match_score));
-
                 pendingFingerPosition = current_finger;
                 msgToLabel = "Fingerprint already exists for this user";
                 enrollStatus = E_OLD_USER_REPEATED_FINGERPRINT;
@@ -287,7 +281,7 @@ void Fap20Reader::SearchInDB(){
             m_CaptureSize = storedTemplate.size();
             memcpy(m_CaptureData,storedTemplate.data(),storedTemplate.size());
 
-            int match_score = Controller->SafeMatchTemplate(m_CaptureData,m_CaptureSize,m_EnrolData,m_EnrolSize);
+            int match_score = FAP30_MatchTemplate(m_CaptureData,m_CaptureSize,m_EnrolData,m_EnrolSize);
             if (match_score >= threshold) {
                 emit fap20readerSignal_send_message_to_mainwindow(QString::number(match_score));
                 pendingUserID = userId;
@@ -331,7 +325,7 @@ void Fap20Reader::EnrollFingerprint(){
             std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            int match_score = Controller->SafeMatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_EnrolData,m_EnrolSize);
+            int match_score = FAP30_MatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_EnrolData,m_EnrolSize);
             if (match_score >= threshold) {
 
                 pendingFingerPosition = current_finger;
@@ -369,7 +363,7 @@ void Fap20Reader::EnrollFingerprint(){
             std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            int match_score = Controller->SafeMatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_EnrolData,m_EnrolSize);
+            int match_score = FAP30_MatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_EnrolData,m_EnrolSize);
             if (match_score >= threshold) {
                 pendingUserID = userId;
                 fingerprintCount = Finger->dbManager->getFingerprintCountForUser(pendingUserID);
@@ -485,7 +479,7 @@ void Fap20Reader::AuthenticateFingerprint() {
             std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
             std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-            int match_score = Controller->SafeMatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_CaptureData,m_CaptureSize);
+            int match_score = FAP30_MatchTemplate(storedTemplateBytes.data(),storedTemplate.size(),m_CaptureData,m_CaptureSize);
 
             if (match_score >= matchThreshold) {
                 QString userName = Finger->dbManager->getUserNameByID(userId);
@@ -513,26 +507,15 @@ void Fap20Reader::VerifyIDFingerprint(const QString id, E_FINGER_POSITION finger
     std::vector<std::byte> capturedBuf(TEMPLATE_SIZE);
     int capturedSize = 0;
 
-    if (!Controller->SafeGetTemplateByEnl(capturedBuf.data(), &capturedSize)) {
-        qDebug() << "Failed to capture fingerprint template";
-        emit fap20readerSignal_send_message_to_mainwindow("Failed to capture fingerprint template");
-        return;
-    }
-
-    QByteArray capturedTemplate = QByteArray(reinterpret_cast<char*>(capturedBuf.data()), capturedSize);
-
     QMap<E_FINGER_POSITION, QByteArray> fingerprintsMap = Finger->dbManager->getFingerprintsByPositionAndUserID(id);
+
 
     if (fingerprintsMap.contains(finger)) {
         QByteArray storedTemplate = fingerprintsMap.value(finger);
         std::vector<unsigned char> storedTemplateBytes(storedTemplate.size());
         std::copy(storedTemplate.begin(), storedTemplate.end(), reinterpret_cast<char*>(storedTemplateBytes.data()));
 
-        int match_score = Controller->SafeMatchTemplate(
-            m_EnrolData,m_EnrolSize,
-            storedTemplateBytes.data(),storedTemplateBytes.size());
-
-
+        int match_score = FAP30_MatchTemplate(storedTemplateBytes.data(),storedTemplateBytes.size(),m_CaptureData,m_CaptureSize);
         if (match_score >= matchThreshold) {
             QString userName = Finger->dbManager->getUserNameByID(id);
             //QString msgToBox = "Fingerprint for user ID: " + id + " and name: " + userName + " at position " + GetFingerString(finger) + " verified successfully.";

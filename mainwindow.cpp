@@ -81,12 +81,12 @@ MainWindow::MainWindow(QWidget *parent)
     pt_fingerprint = new class Fingerprint();
 
     fap20reader = new class Fap20Reader();
+    fap50reader = new class Fap50Reader();
 
 
     //HandWidget = new class CustomHand(ui->label_70);
     ui->custom_hand_widget->setBackgroudLabel(ui->label_70);
-    \
-        ui->capture_hand_widget->setBackgroudLabel(ui->capture_hand_label);
+    ui->capture_hand_widget->setBackgroudLabel(ui->capture_hand_label);
 
     ui->capture_hand_widget->group1->ChangeExclusive(true);
 
@@ -132,7 +132,13 @@ MainWindow::MainWindow(QWidget *parent)
     connect(fap20reader, &Fap20Reader::fap20readerSignal_send_enrollReport_to_mainwindow, this, &MainWindow::onEnrollFromFap20);
     connect(fap20reader, &Fap20Reader::fap20readerSignal_send_authReport_to_mainwindow, this, &MainWindow::onAuthFromFap20);
     connect(fap20reader, &Fap20Reader::fap20readerSignal_send_verificationReport_to_mainwindow, this, &MainWindow::onVerificationFromFap20);
-    connect(fap20reader, &Fap20Reader::fap20readerSignal_send_state, this, &MainWindow::onStatusFromFap20);
+
+    connect(fap50reader, &Fap50Reader::sig_ImageReady, this, &MainWindow::onImageReadyFap50);
+    connect(fap50reader, &Fap50Reader::sig_samplingdone, this, &MainWindow::onSamplingDoneFap50);
+
+    connect(fap50reader, &Fap50Reader::sig_NoImage, this, &MainWindow::onNoImageFap50);
+    connect(fap50reader, &Fap50Reader::sig_fpCount, this, &MainWindow::onFpCountFap50);
+    connect(fap50reader, &Fap50Reader::sig_SendMessage, this, &MainWindow::status_bar_text);
 
     connect(ui->pushButton_12, SIGNAL(clicked()), this, SLOT(on_databaselineedit_clicked()));
 }
@@ -166,6 +172,8 @@ void  MainWindow::HotPlugCallBack(uint8_t action,uint8_t iSerialNumber,uint16_t 
     case 2:
         sprintf(status,"Remove USB device: VID(0x%x) PID(0x%x) SerialNumber(0x%x)\n", idVendor, idProduct,iSerialNumber);
         status_bar_text(status);
+        if(fap20_present == true)fap20reader->Disconnect();
+        on_DisconnectButton_clicked();
         break;
     case 3:
         status_bar_text("Exit Hotplug Thread\n");
@@ -201,13 +209,13 @@ void MainWindow::status_bar_text(QString text, int timeout)
         letter-spacing: 0px;    \
         color: #616E85; \
         opacity: 1;\
-        margin-left:7px;\
-        margin-right:7px;\
+        padding-left:7px;\
+        padding-right:7px;\
         border:0px solid black;";
 
         ui->statusbar->clearMessage();
     ui->statusbar->setStyleSheet(style);
-    ui->statusbar->showMessage(text,timeout);
+    ui->statusbar->showMessage(text);
 }
 
 
@@ -243,6 +251,7 @@ void MainWindow::enableFAP20layout(){
     ui->custom_hand_widget->fingerLeftThumb->setChecked(false);
 
     // DEFAULT ON
+    ui->custom_hand_widget->fingerRightIndex->click();
     ui->authentication_custom_hand->fingerRightIndex->click();
 
     ui->cleardb_enroll_button->setEnabled(true);
@@ -368,7 +377,6 @@ void MainWindow::onImageReadyFap20()
 
     ui->score_label->setText(QString::number(fap20reader->Finger->Score));
 }
-
 
 void MainWindow::onFap20SetSamplingLabel(QString name = "N/A", QString id = "N/A", QString finger = "N/A", int records = 0){
 
@@ -502,62 +510,6 @@ void MainWindow::onEnrollFromFap20(E_MODE_ENROLLSTATUS enrollStatus, QString mes
 }
 
 
-void MainWindow::onStatusFromFap20(int status)
-{
-    switch(status){
-    case Fap20Controller::FPM_DEVICE:
-        qDebug() << "FPM_DEVICE";
-        //message_to_send = "Please Open Device";
-        break;
-    case Fap20Controller::FPM_PLACE:
-        //message_to_send = "Place finger";
-        qDebug() << "FPM_PLACE";
-        if(currentTab == E_TAB_TYPE_CAPTURE)if(ui->preview_capture->pixmap().isNull())status_bar_text("Please put "+pt_fingerprint->finger_position_string_map[get_choose_capture_finger()]+" finger on the sensor.");
-        if(currentTab == E_TAB_TYPE_ENROLL)if(ui->preview_enroll->pixmap().isNull())status_bar_text("Please put "+pt_fingerprint->finger_position_string_map[get_choose_enroll_finger()]+" finger on the sensor.");
-        if(currentTab == E_TAB_TYPE_AUTH)if(ui->preview_auth->pixmap().isNull())status_bar_text("Please put your finger on the sensor.");
-        if(currentTab == E_TAB_TYPE_VERIFICATION)if(ui->preview_verification->pixmap().isNull())status_bar_text("Please put "+pt_fingerprint->finger_position_string_map[get_choose_verification_finger()]+" finger on the sensor.");
-        break;
-    case Fap20Controller::FPM_LIFT:
-        //message_to_send = "Lift finger";
-        qDebug() << "FPM_LIFT";
-        break;
-    case Fap20Controller::FPM_CAPTURE:
-        qDebug() << "FPM_CAPTURE";
-        if(currentMode == E_MODE_LIVE)
-        {
-            status_bar_text("Image capture, Press Force Capture for record it!.");
-            ui->force_capture_btn->setEnabled(true);
-            ui->force_capture_btn->setStyleSheet(ui->force_capture_btn->styleSheet() + "QPushButton{color: #FFFFFF;background-color: rgb(97, 110, 133);}");
-        }
-        break;
-    case Fap20Controller::FPM_GENCHAR:
-        qDebug() << "FPM_GENCHAR";
-        break;
-    case Fap20Controller::FPM_ENRFPT:
-        qDebug() << "FPM_ENRFPT";
-        if(currentMode == E_MODE_LIVE)
-        {
-            status_bar_text("Image capture, Press Force Capture for record it!.");
-            ui->force_capture_btn->setEnabled(true);
-            ui->force_capture_btn->setStyleSheet(ui->force_capture_btn->styleSheet() + "QPushButton{color: #FFFFFF;background-color: rgb(97, 110, 133);}");
-        }
-        break;
-    case Fap20Controller::FPM_TIMEOUT:
-        qDebug() << "FPM_TIMEOUT";
-        //message_to_send = "Timeout";
-        ui->force_capture_btn->setEnabled(false);
-        ui->force_capture_btn->setStyleSheet(ui->force_capture_btn->styleSheet() + "QPushButton{color: #CFD6E4;background-color: rgb(239, 242, 245);}");
-        fap20reader->Stop();
-        StopButtonWidgets();
-        status_bar_text("Timeout! Please press Start again!.");
-        break;
-    case Fap20Controller::FPM_BUSY:
-        qDebug() << "FPM_BUSY";
-        break;
-    default:
-        break;
-    }
-}
 
 void MainWindow::onVerificationFromFap20(QString name, QString id, E_POPUP_BUTTON_TYPE buttons, E_POPUP_TYPE messageType,int score)
 {
@@ -610,7 +562,7 @@ void MainWindow::deviceConnected_action()
     ui->start_capture->setStyleSheet(ui->start_capture->styleSheet() + "QPushButton{color: #FFFFFF;background-color: rgb(97, 110, 133);}");
     ui->widget_56->setStyleSheet(ui->widget_56->styleSheet() + "QRadioButton::checked {color: #000000;border-bottom:3px solid; border-bottom-color: #FF0000;}");
 
-    status_bar_text("Welcome! Device connected.",4000);
+    //status_bar_text("Welcome! Device connected.",4000);
 
 }
 
@@ -630,8 +582,6 @@ void MainWindow::deviceDisconnected_action()
 
     ui->start_capture->setStyleSheet(ui->start_capture->styleSheet() + "QPushButton{color: #CFD6E4;background-color: rgb(239, 242, 245);}");
     ui->widget_56->setStyleSheet(ui->widget_56->styleSheet() + "QRadioButton::checked {color: #616E85;border-bottom:0px solid;}");
-
-    status_bar_text("Device disconnected!",4000);
 }
 
 void MainWindow::on_DisconnectButton_clicked()
@@ -641,28 +591,42 @@ void MainWindow::on_DisconnectButton_clicked()
     fap20_present = false;
     fap50_present = false;
 
-    fap20reader->IsConnected = false;
-
     deviceDisconnected_action();
 
     ClearCaptureTab();
     ClearEnrollTab();
     ClearAuthTab();
     ClearVerifyTab();
+
+    //status_bar_text("Device disconnected!",4000);
 }
 
 void MainWindow::on_ConnectButton_clicked()
 {
 
-    fap20_present = true;
+    if(OpenDevice(0,0,0) == 1 && LinkDevice(0) == 1)
+    {
+        if(GetSensorType()==0x50)
+        {
+            fap50_present = true;
+            fap_controller = E_FAP50;
+        }
+        else if(GetSensorType()==0x30)
+        {
+            fap20_present = true;
+            fap_controller = E_FAP20;
+        }
+        else if(GetSensorType()==0x20)
+        {
+            fap20_present = true;
+            fap_controller = E_FAP20;
+        }
 
-
-    if(fap20_present && fap50_present){
+    }else
+    {
         fap_controller = E_NONE;
-        template_popup(E_POPUP_TYPE_WARNING,"Error","There are several devices connected.\nPlease keep only 1 device connected.");
-        return;
-    }else if(!fap20_present && !fap50_present){
-        fap_controller = E_NONE;
+        fap20_present = false;
+        fap50_present = false;
         template_popup(E_POPUP_TYPE_WARNING,"Error","No devices found.");
         return;
     }
@@ -674,7 +638,14 @@ void MainWindow::on_ConnectButton_clicked()
         deviceConnected_action();
         ui->device_combo_box->setCurrentIndex(1);
         enableFAP20layout();
-        fap_controller = E_FAP20;
+        return;
+    }
+    else if(fap50_present && fap50reader->Connect())
+    {
+        if(!OpenDataBase())template_popup(E_POPUP_TYPE_WARNING,"Error","Failed to open or create database.");
+        deviceConnected_action();
+        ui->device_combo_box->setCurrentIndex(2);
+        enableFAP50layout();
         return;
     }
 
@@ -689,6 +660,8 @@ void MainWindow::on_start_capture_clicked()
     qDebug() << "on_start_capture_clicked";
     StopButtonWidgets();
 
+    m_stop = false;
+
     ui->start_capture->setHidden(true);
     ui->stop_capture_btn->setHidden(false);
 
@@ -696,6 +669,13 @@ void MainWindow::on_start_capture_clicked()
     ui->EnrollTab->setEnabled(ui->stackedWidget->currentIndex() == 1 ? true : false);
     ui->IdentificationTab->setEnabled(ui->stackedWidget->currentIndex() == 2 ? true : false);
     ui->AuthenticationTab->setEnabled(ui->stackedWidget->currentIndex() == 3 ? true : false);
+
+    if(currentMode == E_MODE_LIVE)
+    {
+        status_bar_text("Image capture, Press Force Capture for record it!.");
+        ui->force_capture_btn->setEnabled(true);
+        ui->force_capture_btn->setStyleSheet(ui->force_capture_btn->styleSheet() + "QPushButton{color: #FFFFFF;background-color: rgb(97, 110, 133);}");
+    }
 
     if(currentTab == E_TAB_TYPE_CAPTURE){
         qDebug() << "Start Capture";
@@ -716,12 +696,16 @@ void MainWindow::on_start_capture_clicked()
 
 void MainWindow::on_stop_capture_btn_clicked()
 {
-    StopButtonWidgets();
+
+    m_stop = true;
+
     if(fap_controller == E_FAP20){
         fap20reader->Stop();
     }else if(fap_controller == E_FAP50){
-
+        fap50reader->m_stop = true;
     }
+
+    StopButtonWidgets();
 }
 
 //----------------------------------------------------------------------------------------------------------------------------->> END SECTION START/STOP PUSHBUTTON
@@ -738,7 +722,9 @@ void MainWindow::on_start_tab_capture()
         if(!fap20StartCaptureProcess())StopButtonWidgets();
     }else if(fap_controller == E_FAP50)
     {
-
+        fap50reader->m_stop = false;
+        fap50reader->m_WorkType = WORK_CAPTUREIMAGE;
+        fap50reader->start();
     }
 }
 
@@ -759,7 +745,9 @@ void MainWindow::on_start_tab_enroll()
         if(!fap20StartEnrollProcess())StopButtonWidgets();
 
     }else if(fap_controller == E_FAP50){
-
+        fap50reader->m_stop = false;
+        fap50reader->m_WorkType = WORK_CAPTUREIMAGE;
+        fap50reader->start();
     }
 
 }
@@ -775,7 +763,9 @@ void MainWindow::on_start_tab_auth()
     if(fap_controller == E_FAP20){
         fap20StartAuthProcess();
     }else if(fap_controller == E_FAP50){
-
+        fap50reader->m_stop = false;
+        fap50reader->m_WorkType = WORK_CAPTUREIMAGE;
+        fap50reader->start();
     }
 }
 
@@ -800,6 +790,9 @@ void MainWindow::on_start_tab_verification()
 //----------------------------------------------------------------------------------------------------------------------------->> END SECTION Callbacks to capture/enroll/authentication/validation
 
 void MainWindow::StopButtonWidgets(){
+
+
+
     ui->CaptureTab->setEnabled(true );
     ui->EnrollTab->setEnabled(true);
     ui->IdentificationTab->setEnabled(true);
@@ -1168,15 +1161,26 @@ void MainWindow::on_force_capture_btn_clicked()
         onFap20SetSamplingLabel("N/A","N/A",pt_fingerprint->finger_position_string_map[get_choose_enroll_finger()]);
         fap20reader->Stop();
         StopButtonWidgets();
+    }else if(fap_controller == E_FAP50){
+
+        switch (currentTab) {
+        case E_TAB_TYPE_CAPTURE:
+            if(fpcount_fap50 == 1)
+            {
+                fap50reader->force_capture = true;
+            }
+            break;
+        case E_TAB_TYPE_ENROLL:
+            if(fpcount_fap50 == 4)
+            {
+                fap50reader->force_capture = true;
+            }
+                break;
+        default:
+            break;
+        }
     }
 
-    /*
-    if(fap_controller == E_FAP20){
-        fap20reader->receiveForceCapture(true);
-    }else if(fap_controller == E_FAP50){
-        fap50reader->force_capture_callback();
-    }
-*/
 
 }
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -2017,3 +2021,98 @@ void MainWindow::on_choose_finger_verification_btn_clicked()
     }
 }
 
+
+
+void MainWindow::onImageReadyFap50(QPixmap pm)
+{
+
+
+    if(currentTab == E_TAB_TYPE_CAPTURE){
+        ui->preview_capture->setPixmap(pm.scaled(ui->preview_capture->width(),ui->preview_capture->height(),Qt::KeepAspectRatio));
+    }else if(currentTab == E_TAB_TYPE_ENROLL){
+        ui->preview_enroll->setPixmap(pm.scaled(ui->preview_enroll->width(),ui->preview_enroll->height(),Qt::KeepAspectRatio));
+    }else if(currentTab == E_TAB_TYPE_AUTH){
+        ui->preview_auth->setPixmap(pm.scaled(ui->preview_auth->width(),ui->preview_auth->height(),Qt::KeepAspectRatio));
+    }else if(currentTab == E_TAB_TYPE_VERIFICATION){
+        ui->preview_verification->setPixmap(pm.scaled(ui->preview_verification->width(),ui->preview_verification->height(),Qt::KeepAspectRatio));
+    }
+
+}
+
+void MainWindow::onNoImageFap50()
+{
+    if(currentTab == E_TAB_TYPE_CAPTURE){
+        ui->preview_capture->clear();
+    }else if(currentTab == E_TAB_TYPE_ENROLL){
+        ui->preview_enroll->clear();
+    }else if(currentTab == E_TAB_TYPE_AUTH){
+        ui->preview_auth->clear();
+    }else if(currentTab == E_TAB_TYPE_VERIFICATION){
+        ui->preview_verification->clear();
+    }
+}
+
+void MainWindow::onFpCountFap50(int count)
+{
+    fpcount_fap50 = count;
+}
+
+void MainWindow::onSamplingDoneFap50(FourFingers res)
+{
+    if(currentTab != E_TAB_TYPE_ENROLL)StopButtonWidgets();
+
+    if(currentTab == E_TAB_TYPE_CAPTURE){
+        fap50CaptureSamplingDone(*res.finger1);
+    }else if(currentTab == E_TAB_TYPE_ENROLL){
+        fap50EnrollSamplingDone(res);
+    }else if(currentTab == E_TAB_TYPE_AUTH){
+        //fap50AuthSamplingDone(res);
+    }else if(currentTab == E_TAB_TYPE_VERIFICATION){
+    }
+
+    ui->capture_sample_widget->setEnabled(true);
+
+    ui->save_button->setEnabled(true);
+    ui->enroll_pushButton_fap50->setEnabled(true);
+
+}
+
+
+void MainWindow::fap50CaptureSamplingDone(QPixmap res)
+{
+    ui->capture_sampling_label->setPixmap(res.scaled(ui->capture_sampling_label->width(),ui->capture_sampling_label->height(),Qt::KeepAspectRatio));
+
+    ui->capture_score_label->setText(QString::number(100));
+
+    ui->stop_capture_btn->setHidden(true);
+    ui->start_capture->setHidden(false);
+
+    ui->preview_capture->clear();
+
+    ui->save_button->setEnabled(true);
+    ui->save_button->setStyleSheet(ui->save_button->styleSheet() + "QPushButton{color: #FFFFFF;background-color: rgb(97, 110, 133);}");
+
+    fap50reader->m_stop = true;
+    StopButtonWidgets();
+
+    status_bar_text("Capture sampling done!",3000);
+}
+
+void MainWindow::fap50EnrollSamplingDone(FourFingers res)
+{
+    ui->score_label->setText(QString::number(100));
+
+    ui->enroll_pushButton_fap50->setEnabled(true);
+    ui->enroll_pushButton_fap50->setStyleSheet(ui->enroll_pushButton_fap50->styleSheet() + "QPushButton{color: #FFFFFF;background-color: rgb(97, 110, 133);}");
+
+    ui->r_index_label->setPixmap((res.finger1->scaled(ui->r_index_label->width(),ui->r_index_label->height(),Qt::KeepAspectRatio)));
+    ui->r_middle_label->setPixmap((res.finger2->scaled(ui->r_middle_label->width(),ui->r_middle_label->height(),Qt::KeepAspectRatio)));
+    ui->r_ring_label->setPixmap((res.finger3->scaled(ui->r_ring_label->width(),ui->r_ring_label->height(),Qt::KeepAspectRatio)));
+    ui->r_little_label->setPixmap((res.finger4->scaled(ui->r_little_label->width(),ui->r_little_label->height(),Qt::KeepAspectRatio)));
+
+    fap50reader->m_stop = true;
+    StopButtonWidgets();
+
+    status_bar_text("Capture sampling done!",3000);
+
+}

@@ -5,22 +5,15 @@
 #include <QStandardPaths>
 
 #include "IMD/FAP20/fap20reader.h"
-#include "IMD/FAP50/Fap50reader.h"
 #include "IMD/common/modes.h"
 #include "IMD/FAP20/fingerprint.h"
 
 #include <QMainWindow>
 #include <QTimer>
-#include <QScreen>
-#include <QRect>
-#include <QList>
-#include <QMessageBox>
 
 #include "./libs/fpcore.h"
 #include "./libs/fpdevice.h"
 #include "./libs/fpstate.h"
-#include "./libs/fpdevice50.h"
-#include "./libs/fpimage50.h"
 
 
 #define WM_NCLMESSAGE (WM_USER + 120)
@@ -48,6 +41,7 @@ namespace Ui {
 class MainWindow;
 }
 QT_END_NAMESPACE
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -55,7 +49,9 @@ class MainWindow : public QMainWindow
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-private:
+
+    void DrawBitmap(unsigned char* imagedata);
+    void FPMessage(int worktype,int retval,unsigned char* data,int size);
 
 private slots:
     void on_ConnectButton_clicked();
@@ -149,7 +145,6 @@ private:
     Ui::MainWindow *ui;
 
     Fap20Reader *fap20reader = nullptr;
-    Fap50Reader *fap50reader = nullptr;
 
     bool fap20_present = false;
     bool fap50_present = false;
@@ -171,19 +166,11 @@ private:
 
     void onStatusFromFap20(int);
 
+    void onSamplingDoneFap50(ImageProperty res);
     void onSamplingCustomDoneFap50(ImageProperty res, std::vector< E_FINGER_POSITION> vec);
     void onCancelSamplingFap50();
     void onCaptureInfoFap50(E_FINGER_POSITION pos);
     void onScoreFap50(ImageProperty score);
-
-    void onImageReadyFap50(QPixmap pm);
-    void onNoImageFap50();
-    void onFpCountFap50(int Count);
-
-    void onSamplingDoneFap50(FourFingers res);
-
-    void fap50CaptureSamplingDone(QPixmap res);
-    void fap50EnrollSamplingDone(FourFingers res);
 
     void fap50enrollFinish();
     void fap50ClearEnrollFingers();
@@ -243,8 +230,5 @@ private:
     int templateSize;
 
     int score_threshold = 50;
-
-    int fpcount_fap50;
-    bool m_stop;
 };
 #endif // MAINWINDOW_H

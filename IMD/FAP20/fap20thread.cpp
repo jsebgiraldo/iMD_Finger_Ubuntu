@@ -94,35 +94,13 @@ void Fap20Thread::EnrolTemplate()
         emit pFap20->FPMessage(FPM_ENROLTP,0,0,0);
         return;
     }
-    emit pFap20->FPMessage(FPM_LIFTFINGER,0,0,0);
-    while(true)
+
+    if(UpDeviceTemplate(1,m_TemplateData,&m_TemplateSize))
     {
-        if(GetDeviceImage()==0)
-            break;
-    }
-    emit pFap20->FPMessage(FPM_PLACEFINGER,0,0,0);
-    while(true)
-    {
-        if(GetDeviceImage())
-            break;
-    }
-    if(UpDeviceImage(m_ImageData,&m_ImageSize))
-    {
-        emit pFap20->FPMessage(FPM_DRAWIMAGE,0,m_ImageData,m_ImageSize);
-    }
-    if(GenerateDeviceTemplate(2)==0)
-    {
-        emit pFap20->FPMessage(FPM_ENROLTP,0,0,0);
+        emit pFap20->FPMessage(FPM_ENROLTP,1,m_TemplateData,m_TemplateSize);
         return;
     }
-    if(CombineDeviceTemplate())
-    {
-        if(UpDeviceTemplate(1,m_TemplateData,&m_TemplateSize))
-        {
-            emit pFap20->FPMessage(FPM_ENROLTP,1,m_TemplateData,m_TemplateSize);
-            return;
-        }
-    }
+
     emit pFap20->FPMessage(FPM_ENROLTP,0,0,0);
 }
 

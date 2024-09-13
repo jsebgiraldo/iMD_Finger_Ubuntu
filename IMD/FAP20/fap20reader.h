@@ -4,18 +4,11 @@
 #include "IMD/common/devicediscover.h"
 #include "IMD/common/fingersList.h"
 #include "IMD/common/databasemanager.h"
-#include "fap20controller.h"
 #include "IMD/common/modes.h"
 
 #include "fingerprint.h"
 #include <QDateTime>
-#include <QThread>
-#include <QMutex>
-#include <QQueue>
-#include <QWaitCondition>
 #include <QByteArray>
-#include <QTimer>
-#include <QEvent>
 
 #define WORK_CAPTUREIMAGE   1
 #define WORK_ENROLTP        2
@@ -44,6 +37,8 @@ Q_SIGNALS:
     void fap20readerSignal_sig_ImageReady();
     void fap20readerSignal_placeSamplingLabel(QString name, QString id, QString finger, int records);
 public:
+    Fap20Reader();
+    ~Fap20Reader();
     E_TAB_TYPE CaptureMode;
     E_FINGER_POSITION current_finger;
     Fingerprint * Finger = nullptr;
@@ -63,7 +58,7 @@ public:
     bool keepRunning;
     bool forceCapture = false;
 
-    Fap20Reader(QObject *parent = nullptr);
+
 
     bool Connect();
     bool Disconnect();
@@ -99,22 +94,11 @@ public slots:
     void slotFPMessage(int worktype,int retval,unsigned char* data,int size);
 
 private:
-    DeviceDiscover *Discover = nullptr;
-    Fap20Controller *Controller = nullptr;
     QByteArray fingerprintTemplate;
-
     QString pendingUserID;
     E_FINGER_POSITION pendingFingerPosition;
 
-    QMutex m_mutex;
-    QQueue<QString> m_queue;
-    QWaitCondition m_condition;
-
-    QTimer captureTimer;
-
-    QElapsedTimer stopwatch;
     BYTE RefBuf[TEMPLATE_SIZE];
-
     QString GetFingerString(E_FINGER_POSITION fingerPos);
     void SearchInDB();
 
@@ -131,6 +115,8 @@ private:
     unsigned char m_CaptureData[1024];
     unsigned char m_ImageData[300000];
     unsigned char m_BmpData[300000];
+
+    FPDEVINFO m_DevInfo;
 
 };
 

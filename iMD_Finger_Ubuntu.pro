@@ -13,20 +13,20 @@ DEFINES += QT_DEPRECATED_WARNINGS
 QMAKE_LFLAGS += -Wl,-rpath=/usr/lib:./
 
 SOURCES += \
-    IMD/FAP20/fap20controller.cpp \
     IMD/FAP20/fap20reader.cpp \
     IMD/FAP20/fap20thread.cpp \
     IMD/FAP20/fingerprint.cpp \
+    IMD/FAP50/fap50reader.cpp \
     IMD/common/databasemanager.cpp \
     IMD/common/devicediscover.cpp \
     main.cpp \
     mainwindow.cpp
 
 HEADERS += \
-    IMD/FAP20/fap20controller.h \
     IMD/FAP20/fap20reader.h \
     IMD/FAP20/fap20thread.h \
     IMD/FAP20/fingerprint.h \
+    IMD/FAP50/Fap50reader.h \
     IMD/common/databasemanager.h \
     IMD/common/devicediscover.h \
     IMD/common/fingersList.h \
@@ -50,3 +50,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 
 RESOURCES += \
     img.qrc
+
+DISTFILES += \
+    IMD/FAP50/Fap50reader.h:Zone.Identifier \
+    IMD/FAP50/fap50controller.cpp:Zone.Identifier \
+    IMD/FAP50/fap50reader.cpp:Zone.Identifier
